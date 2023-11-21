@@ -137,25 +137,6 @@ void echo(int connfd) {
                         memset(password, '\0', sizeof(password));
                         break;
                     }
-                    case ACCOUNT_BLOCKED: {
-                        strcpy(buff, "account is blocked due to 3 failed login attempts");
-                        status = USERNAME_REQUIRED;
-                        memset(username, '\0', sizeof(username));
-                        memset(password, '\0', sizeof(password));
-                        break;
-                    }
-                }
-                break;
-            }
-            case VALID_CREDENTIALS: {
-                if (strcmp(buff, "signout") == 0) {
-                    strcpy(buff, "you have signed out, ");
-                    strcat(buff, username);
-                    status = USERNAME_REQUIRED;
-                    memset(username, '\0', sizeof(username));
-                    memset(password, '\0', sizeof(password));
-                } else {
-                    strcpy(buff, "enter \"signout\" to sign out");
                 }
                 break;
             }
@@ -168,5 +149,4 @@ void echo(int connfd) {
         }
     }
     close(connfd);
-    save_to_file(account_list, FILENAME);   // save any updates to file
 }

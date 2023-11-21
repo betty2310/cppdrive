@@ -1,13 +1,13 @@
+#include <arpa/inet.h>
+#include <errno.h>
+#include <netinet/in.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdbool.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <sys/socket.h>
-#include <unistd.h>
-#include <sys/types.h>
 #include <string.h>
-#include <errno.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 #define BUFF_SIZE 1024
 
@@ -71,7 +71,8 @@ int main(int argc, char *argv[]) {
             break;
         }
         msg_len = strlen(buff);
-        if (msg_len == 0) break;
+        if (msg_len == 0)
+            break;
 
         bytes_sent = send(client_sock, buff, msg_len, 0);
         if (bytes_sent == -1) {
@@ -90,8 +91,18 @@ int main(int argc, char *argv[]) {
         }
 
         buff[bytes_received] = '\0';
+        int status = 100;
         printf("Reply from server: %s\n", buff);
-        if (strcmp(buff, "goodbye") == 0) {
+        if (strcmp(buff, "enter password: ") != 0) {
+            status = atoi(buff);
+        }
+        if (status == 1) {
+            printf("Login successful. Access granted.\n");
+            break;
+        } else if (status == -1) {
+            printf("Invalid username or password. Please try again.\n");
+        } else if (status == 0) {
+            printf("Account is blocked. Please contact the administrator.\n");
             break;
         }
     }

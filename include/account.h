@@ -1,6 +1,5 @@
 #ifndef ACCOUNT_H
 #define ACCOUNT_H
-
 #define MAX_CHARS 1024
 #define MAX_ATTEMPTS 3
 #define USERNAME_REQUIRED 1
@@ -13,16 +12,13 @@
 struct account {
     char *username;
     char *password;
-    int is_active;
-    int attempts;
+    char *is_active;
     struct account *next;
 };
 
 typedef struct account *Account;
 
-Account new_account(char *username, char *password, int attempts, int is_active);
-
-Account add_account(Account account_list, char *username, char *password, int attempts, int is_active);
+Account add_account(Account account_list, char *username, char *password, char *is_active);
 
 Account read_account(const char *filename);
 
