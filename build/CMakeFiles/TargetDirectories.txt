@@ -1,5 +1,0 @@
-/home/ngocdung/Downloads/cppdrive/build/CMakeFiles/rebuild_cache.dir
-/home/ngocdung/Downloads/cppdrive/build/CMakeFiles/edit_cache.dir
-/home/ngocdung/Downloads/cppdrive/build/CMakeFiles/client.dir
-/home/ngocdung/Downloads/cppdrive/build/CMakeFiles/server.dir
-/home/ngocdung/Downloads/cppdrive/build/CMakeFiles/engine.dir

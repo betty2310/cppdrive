@@ -13,7 +13,7 @@
 #include "account.h"
 
 #define BACKLOG  20 /* Number of allowed connections */
-#define FILENAME "account.txt"
+#define FILENAME "../account.txt"
 
 Account account_list = NULL;
 
