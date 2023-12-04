@@ -5,7 +5,7 @@
 
 #include "file_tree.h"
 
-enum class COMMAND { LS, CD, UPLOAD, DOWNLOAD, EXIT, INVALID };
+enum class COMMAND { LS, CD, UPLOAD, DOWNLOAD, EXIT, INVALID, CLEAR, MKDIR };
 
 struct Command {
     COMMAND command;

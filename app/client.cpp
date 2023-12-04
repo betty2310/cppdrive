@@ -142,6 +142,9 @@ int main(int argc, char *argv[]) {
                 std::getline(std::cin, command);
                 Command parsedCommand = parseCommand(command);
                 switch (parsedCommand.command) {
+                    case COMMAND::CLEAR:
+                        std::system("clear");
+                        break;
                     case COMMAND::LS:
                         terminal.ls();
                         break;

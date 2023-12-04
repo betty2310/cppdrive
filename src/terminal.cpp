@@ -29,6 +29,8 @@ struct Command parseCommand(const std::string &command) {
             parsedCommand.command = COMMAND::LS;
         } else if (parsedCommand.argument[0] == "exit") {
             parsedCommand.command = COMMAND::EXIT;
+        } else if (parsedCommand.argument[0] == "clear") {
+            parsedCommand.command = COMMAND::CLEAR;
         } else {
             parsedCommand.command = COMMAND::INVALID;
         }
