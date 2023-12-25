@@ -1,231 +1,202 @@
 #include <arpa/inet.h>
+#include <ctype.h>
+#include <dirent.h>
 #include <errno.h>
-#include <netinet/in.h>
-#include <stdbool.h>
+#include <fcntl.h>
+#include <netdb.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
+#include <sys/stat.h>
 #include <sys/types.h>
+#include <sys/wait.h>
+#include <time.h>
 #include <unistd.h>
 
-#include <iostream>
-#include <string>
+#include "authenticate.h"
+#include "common.h"
+#include "connect.h"
+#include "download.h"
+#include "ls.h"
+#include "reply.h"
+#include "upload.h"
+#include "utils.h"
 
-#include "protocol.h"
-#include "terminal.h"
+char root_dir[MAX_SIZE];
 
-int client_sock;
-bool isAuthen = false;
-Message *mess;
-char current_usr[255];
+int main(int argc, char const *argv[]) {
+    int sock_control;
+    int data_sock, retcode;
+    char user_input[MAX_SIZE];
+    struct command cmd;
 
-/**
- * @brief Checks if the given string is a valid IP address.
- *
- * @param str The string to be checked.
- * @return true if the string is a valid IP address, false otherwise.
- */
-bool validIPAddress(const char *str);
-
-/**
- *  @brief authentication menu of application: login, register, exit
- *  @return void
- */
-void printAuthenMenu();
-
-/**
- *  @brief main menu of application: download, upload file, etc...
- *  @return void
- */
-void printMainMenu();
-
-/**
- * @brief get login information from user: username and password then save it to `msg->payload`
- * @brief also save username to `str`
- * @param str: username
- * @return void
- */
-void getLoginInfo(char *str);
-
-/**
- * @brief Performs the login functionality.
- *
- * This function prompts the user for a username, sends it to the server for authentication,
- * and updates the current_user variable with the authenticated username.
- *
- * @param current_user A pointer to a character array to store the authenticated username.
- */
-void loginFunc(char *current_user);
-
-int main(int argc, char *argv[]) {
-    if (argc != 3) {
-        fprintf(stderr, "Usage: %s <ip_address> <port_number>\n", argv[0]);
-        return EXIT_FAILURE;
+    if (argc != 2) {
+        printf("usage: ./%s <ip> <port>\n", argv[0]);
+        exit(0);
     }
 
-    // check if the IP address is valid
-    char *SERV_IP = argv[1];
-    if (!validIPAddress(SERV_IP)) {
-        fprintf(stderr, "Error: invalid IP address\n");
-        return EXIT_FAILURE;
+    int ip_valid = validate_ip(argv[1]);
+    if (ip_valid == INVALID_IP) {
+        printf("Error: Invalid ip-address\n");
+        exit(1);
     }
 
-    // check if the port number is valid
-    char *endptr;
-    errno = 0;
-    uint16_t SERV_PORT = strtoul(argv[2], &endptr, 10);
-    if (errno != 0 || *endptr != '\0') {
-        fprintf(stderr, "Error: %s\n", errno == EINVAL ? "invalid base" : "invalid input");
-        return EXIT_FAILURE;
+    sock_control = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+
+    if (sock_control == INVALID_SOCKET) {
+        perror("Error");
+        exit(1);
     }
 
-    struct sockaddr_in server_addr; /* server's address information */
+    SOCKADDR_IN servAddr;
 
-    // Step 1: Construct socket
-    if ((client_sock = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
-        perror("\nError creating socket");
-        return EXIT_FAILURE;
+    servAddr.sin_family = AF_INET;
+    servAddr.sin_port = htons(PORT);   // use some unused port number
+    servAddr.sin_addr.s_addr = inet_addr(argv[1]);
+
+    int connectStatus = connect(sock_control, (SOCKADDR *) &servAddr, sizeof(servAddr));
+
+    if (connectStatus == -1) {
+        printf("Error...\n");
+        exit(1);
     }
 
-    // Step 2: Specify server address
-    memset(&server_addr, 0, sizeof(server_addr));
-    server_addr.sin_family = AF_INET;
-    server_addr.sin_port = htons(SERV_PORT);
-    server_addr.sin_addr.s_addr = inet_addr(SERV_IP);
+    // Get connection, welcome messages
+    printf("Connected to %s.\n", argv[1]);
+    print_reply(read_reply(sock_control));
 
-    // Step 3: Request to connect server
-    if (connect(client_sock, (struct sockaddr *) &server_addr, sizeof(server_addr)) == -1) {
-        perror("\nError connecting to server");
-        close(client_sock);
-        return EXIT_FAILURE;
-    }
+    // Register
+    char hasAcc;
+    printf("Do you have an account? (Y/N) ");
+    scanf("%c", &hasAcc);
+    if ((hasAcc == 'n') || (hasAcc == 'N'))
+        ftclient_register(sock_control);
 
-    // Step 4: Communicate with server
-    char choose;
-    mess = (Message *) malloc(sizeof(Message));
-    while (true) {
-        if (!isAuthen) {
-            printAuthenMenu();
-            scanf(" %c", &choose);
-            while (getchar() != '\n')
-                ;
-            switch (choose) {
-                case '1':
-                    loginFunc(current_usr);
-                    break;
+    /* Get name and password and send to server */
+    printf("Please login!\n");
+    ftclient_login(sock_control);
+
+    while (1) {   // loop until user types quit
+
+        // Get a command from user
+        int cmd_stt = ftclient_read_command(user_input, sizeof(user_input), &cmd);
+        if (cmd_stt == -1) {
+            printf("Invalid command\n");
+            continue;   // loop back for another command
+        } else if (cmd_stt == 0) {
+            // Send command to server
+            if (send(sock_control, user_input, strlen(user_input), 0) < 0) {
+                close(sock_control);
+                exit(1);
             }
 
-        } else {
-            Message msg;
-            msg.type = TYPE_REQUEST_DIRECTORY;
-            strcpy(msg.payload, current_usr);
-            msg.length = strlen(msg.payload);
-            sendMessage(client_sock, msg);
-
-            std::string str_tree = "";
-            while (true) {
-                receiveMessage(client_sock, &msg);
-                if (msg.length > 0) {
-                    std::string payload(msg.payload);
-                    str_tree += payload;
-                } else {
-                    break;
-                }
+            retcode = read_reply(sock_control);
+            if (retcode == 221) {
+                /* If command was quit, just exit */
+                print_reply(221);
+                break;
             }
-            std::system("clear");
-            Terminal terminal(str_tree);
-            std::string current_path = " ~";
-            while (true) {
-                std::cout << current_usr << "@cpp_drive:" << current_path << " $ ";
-                std::string command;
-                std::getline(std::cin, command);
-                Command parsedCommand = parseCommand(command);
-                switch (parsedCommand.command) {
-                    case COMMAND::CLEAR:
-                        std::system("clear");
-                        break;
-                    case COMMAND::LS:
-                        terminal.ls();
-                        break;
-                    case COMMAND::CD:
-                        if (parsedCommand.argument[1] == "..") {
-                            current_path = " ~";
-                            terminal.resetCurrentDirectory();
-                            continue;
-                        }
-                        if (terminal.cd(parsedCommand.argument[1])) {
-                            current_path += "/" + parsedCommand.argument[1];
-                        }
-                        break;
-                    case COMMAND::UPLOAD:
-                        break;
-                    case COMMAND::DOWNLOAD:
-                        break;
-                    case COMMAND::EXIT:
-                        break;
-                    case COMMAND::INVALID:
-                        break;
+
+            if (retcode == 502) {
+                // If invalid command, show error message
+                printf("%d Invalid command.\n", retcode);
+            } else {
+                // Command is valid (RC = 200), process command
+
+                // open data connection
+                if ((data_sock = ftclient_open_conn(sock_control)) < 0) {
+                    perror("Error opening socket for data connection");
+                    exit(1);
                 }
+
+                // execute command
+                if (strcmp(cmd.code, "LIST") == 0) {
+                    ftclient_list(data_sock);
+                } else if (strcmp(cmd.code, "CWD ") == 0) {
+                    int repl = read_reply(sock_control);
+                    if (repl == 250)
+                        print_reply(250);
+                    else if (repl == 551)
+                        print_reply(551);
+                    else
+                        printf("%s is not a directory\n", cmd.arg);
+                } else if (strcmp(cmd.code, "FIND") == 0) {
+                    int repl = read_reply(sock_control);
+                    // File found
+                    if (repl == 241) {
+                        int nums = read_reply(sock_control);
+                        for (int i = 0; i < nums; ++i)
+                            ftclient_list(data_sock);   // ham nay in mess tu server
+                    } else if (repl == 441)
+                        printf("441 File not found!\n");
+                } else if (strcmp(cmd.code, "RENM") == 0) {
+                    int repl = read_reply(sock_control);
+                    if (repl == 251)
+                        printf("251 Rename successfully\n");
+                    else if (repl == 451)
+                        printf("451 Rename failure\n");
+                    else if (repl == 452)
+                        printf("452 Syntax error (renm <oldfilename> <newfilename>)\n");
+                } else if (strcmp(cmd.code, "DEL ") == 0) {
+                    int repl = read_reply(sock_control);
+                    if (repl == 252)
+                        printf("252 Delete successfully\n");
+                    else if (repl == 453)
+                        printf("451 Delete failure\n");
+                } else if (strcmp(cmd.code, "MOV ") == 0) {
+                    int repl = read_reply(sock_control);
+                    if (repl == 253)
+                        printf("253 Moved successfully\n");
+                    else if (repl == 454)
+                        printf("454 Move failure\n");
+                    else if (repl == 455)
+                        printf("455 Syntax error (mov <filepath> <newfilepath>)\n");
+                } else if (strcmp(cmd.code, "CPY ") == 0) {
+                    int repl = read_reply(sock_control);
+                    if (repl == 253)
+                        printf("253 Copied successfully\n");
+                    else if (repl == 454)
+                        printf("454 Copy failure\n");
+                    else if (repl == 455)
+                        printf("455 Syntax error (cpy <filepath> <newfilepath>)\n");
+                } else if (strcmp(cmd.code, "SHRE") == 0) {
+                    int repl = read_reply(sock_control);
+                    if (repl == 261)
+                        printf("261 Shared successfully\n");
+                    else if (repl == 462)
+                        printf("462 User not found\n");
+                    else if (repl == 463)
+                        printf("463 File/Folder not found\n");
+                    else if (repl == 464)
+                        printf("464 Must not share to yourself\n");
+                    else if (repl == 461)
+                        printf("461 Syntax error (share <username> <filename>)\n");
+                } else if (strcmp(cmd.code, "MKDR") == 0) {
+                    int repl = read_reply(sock_control);
+                    if (repl == 254)
+                        printf("254 Mkdir successfully\n");
+                    else if (repl == 456)
+                        printf("451 Mkdir failure\n");
+                } else if (strcmp(cmd.code, "PWD ") == 0) {
+                    if (read_reply(sock_control) == 212) {
+                        ftclient_list(data_sock);   // ham nay in mess tu server
+                    }
+                } else if (strcmp(cmd.code, "RETR") == 0) {
+                    ftclient_get(data_sock, sock_control, cmd.arg);
+                } else if (strcmp(cmd.code, "STOR") == 0) {
+                    printf("Uploading ...\n");
+                    upload(data_sock, cmd.arg, sock_control);
+                    printf("xong\n");
+                }
+                close(data_sock);
             }
         }
-    }
-    // Step 5: Close socket
-    close(client_sock);
-    return EXIT_SUCCESS;
-}
 
-bool validIPAddress(const char *str) {
-    struct in_addr addr;
-    return inet_pton(AF_INET, str, &addr) == 1;
-}
+    }   // loop back to get more user input
 
-void printAuthenMenu() {
-    printf("\n------------------CPP DRIVE------------------\n");
-    printf("\n1 - Login");
-    printf("\n2 - Register");
-    printf("\n3 - Exit");
-    printf("\nChoose: ");
-}
-
-void printMainMenu() {
-    printf("\n------------------Menu------------------\n");
-    printf("\n1 - Upload file");
-    printf("\n2 - Download File");
-    printf("\n3 - Rename File");
-    printf("\n4 - Change directory File");
-    printf("\n5 - Open folder");
-    printf("\n6 - Create folder");
-    printf("\n7 - Logout");
-    printf("\nPlease choose: ");
-}
-
-void getLoginInfo(char *str) {
-    char username[255];
-    char password[255];
-    printf("Enter username: ");
-    scanf("%[^\n]s", username);
-    while (getchar() != '\n')
-        ;
-    printf("Enter password: ");
-    scanf("%[^\n]s", password);
-    while (getchar() != '\n')
-        ;
-    sprintf(mess->payload, "LOGIN\nUSER %s\nPASS %s", username, password);
-    strcpy(str, username);
-}
-
-void loginFunc(char *current_user) {
-    char username[255];
-    mess->type = TYPE_AUTHENTICATE;
-    getLoginInfo(username);
-    strcpy(current_user, username);
-    mess->length = strlen(mess->payload);
-    sendMessage(client_sock, *mess);
-    receiveMessage(client_sock, mess);
-    if (mess->type != TYPE_ERROR) {
-        isAuthen = true;
-    } else {
-        printf("Login failed\n");
-    }
+    // Close the socket (control connection)
+    close(sock_control);
+    return 0;
 }

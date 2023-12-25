@@ -24,20 +24,28 @@ include(ConfigSafeGuards)
 include(Colors)
 include(LTO)
 include(Warnings)
-
 # Check for LTO support.
 find_lto(CXX)
-
+if(APPLE)
+  list(APPEND CMAKE_FIND_ROOT_PATH "/usr/local/opt/openssl")
+endif()
+find_package(OpenSSL REQUIRED)
 # --------------------------------------------------------------------------------
 #                         Locate files (change as needed).
 # --------------------------------------------------------------------------------
 set(SOURCES          # All .cpp files in src/
-    src/account.cpp
-    src/protocol.cpp
+    src/common.cpp
+    src/authenticate.cpp
+    src/connect.cpp
+    src/download.cpp
+    src/ls.cpp
+    src/reply.cpp
+    src/upload.cpp
     src/utils.cpp
-    src/status.cpp
-    src/file_tree.cpp
-    src/terminal.cpp
+    src/file.cpp
+    src/find.cpp
+    src/cwd.cpp
+    src/pwd.cpp
 )
 
 set(LIBRARY_NAME engine)  # Default name for the library built from src/*.cpp (change if you wish)
@@ -50,18 +58,18 @@ add_library(${LIBRARY_NAME} OBJECT ${SOURCES})
 
 # Lib needs its header files, and users of the library must also see these (PUBLIC). (No change needed)
 target_include_directories(${LIBRARY_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include)
-
+target_include_directories(${LIBRARY_NAME} PUBLIC ${OPENSSL_INCLUDE_DIR})
 # Set the compile options you want (change as needed).
 target_set_warnings(${LIBRARY_NAME} ENABLE ALL AS_ERROR ALL DISABLE Annoying)
 # target_compile_options(${LIBRARY_NAME} ... )  # For setting manually.
 
 
 add_executable(server app/server.cpp)   # Name of exec. and location of file.
-target_link_libraries(server PRIVATE ${LIBRARY_NAME})  # Link the executable to library (if it uses it).
+target_link_libraries(server PRIVATE ${LIBRARY_NAME} OpenSSL::SSL OpenSSL::Crypto)  # Link the executable to library (if it uses it).
 target_set_warnings(server ENABLE ALL AS_ERROR ALL DISABLE Annoying) # Set warnings (if needed).
 target_enable_lto(server optimized)  # enable link-time-optimization if available for non-debug configurations
 add_executable(client app/client.cpp)   # Name of exec. and location of file.
-target_link_libraries(client PRIVATE ${LIBRARY_NAME})  # Link the executable to library (if it uses it).
+target_link_libraries(client PRIVATE ${LIBRARY_NAME} OpenSSL::SSL OpenSSL::Crypto)  # Link the executable to library (if it uses it).
 target_set_warnings(client ENABLE ALL AS_ERROR ALL DISABLE Annoying) # Set warnings (if needed).
 target_enable_lto(client optimized) 
 
