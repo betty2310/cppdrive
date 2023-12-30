@@ -113,6 +113,5 @@ int process_menu(const char *menu_items[], int num_items) {
     }
 
     disable_raw_mode(&orig_termios);
-    printf("You selected: %s\n", menu_items[current_selection]);
     return current_selection;
 }
