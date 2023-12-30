@@ -1,11 +1,11 @@
+#include "utils.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/ioctl.h>
 #include <termios.h>
 #include <unistd.h>
-
-#include "util.h"
 
 #define UP_ARROW   "\033[A"
 #define DOWN_ARROW "\033[B"
