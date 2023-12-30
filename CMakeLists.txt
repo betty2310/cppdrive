@@ -46,6 +46,9 @@ set(SOURCES          # All .cpp files in src/
     src/find.cpp
     src/cwd.cpp
     src/pwd.cpp
+    src/validate.cpp
+    src/status.cpp
+    src/message.cpp
 )
 
 set(LIBRARY_NAME engine)  # Default name for the library built from src/*.cpp (change if you wish)
