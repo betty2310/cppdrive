@@ -3,9 +3,21 @@
 
 #include <cstdio>
 
-void ftclient_login(int sock_control);
-void ftclient_register(int sock_control);
+#include "message.h"
+
 void sha256(const char *input, char *output);
+
+/**
+ * Login to cppdrive
+ * @param sock_control socket for control connection
+ */
+void handle_login(int sock_control);
+
+/**
+ * Register new account
+ * @param sockfd socket for control connection
+ */
+void register_acc(int sockfd);
 
 // Function to remove duplicates from the file
 void removeDuplicates(FILE *file);
@@ -22,16 +34,22 @@ int ftserve_check_user(char *user, char *pass, char *user_dir);
  * Check if db has existing username
  * Return 1 if authenticated, 0 if not
  */
-int ftserve_check_username(char *user);
+int check_username(char *user);
 
 /**
- * Log in connected client
+ * server handle login
+ * @param msg message to receive
+ * @param user_dir user directory
+ * @return 1 if authenticated, 0 if not
  */
-int ftserve_login(int sock_control, char *user_dir);
+int server_login(Message msg, char *user_dir);
 
 /**
- * Log in connected client
+ * server handle register
+ * @param sockfd socket for control connection
+ * @param msg message to receive
+ * @return 1 if success, 0 if not
  */
-int ftserve_register(int sock_control);
+int server_register(int sockfd, Message msg);
 
 #endif

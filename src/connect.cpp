@@ -12,6 +12,46 @@
 
 #include "common.h"
 
+int send_message(int sockfd, Message msg) {
+    int dataLength, nLeft, idx;
+    nLeft = sizeof(Message);
+    idx = 0;
+    while (nLeft > 0) {
+        dataLength = send(sockfd, (char *) &msg + idx, nLeft, 0);
+        if (dataLength <= 0) {
+            perror("\nError: ");
+            close(sockfd);
+            return -1;
+        }
+        nLeft -= dataLength;
+        idx += dataLength;
+    }
+    return 1;
+}
+
+int recv_message(int socket, Message *msg) {
+    char recvBuff[PAYLOAD_SIZE];
+    int ret, nLeft, idx, bytes_recv;
+    Message recvMessage;
+    ret = 0;
+    idx = 0;
+    nLeft = sizeof(Message);
+    while (nLeft > 0) {
+        bytes_recv = nLeft > PAYLOAD_SIZE ? PAYLOAD_SIZE : nLeft;
+        ret = recv(socket, recvBuff, bytes_recv, 0);
+        if (ret <= 0) {
+            perror("\nError: ");
+            close(socket);
+            return -1;
+        }
+        memcpy(&(((char *) &recvMessage)[idx]), recvBuff, ret);
+        idx += ret;
+        nLeft -= ret;
+    }
+    messsagecpy(&(*msg), recvMessage);
+    return 1;
+}
+
 /**
  * Create listening socket on remote host
  * Returns -1 on error, socket fd on success

@@ -23,6 +23,7 @@
 #include "reply.h"
 #include "upload.h"
 #include "utils.h"
+#include "validate.h"
 
 char root_dir[SIZE];
 
@@ -37,8 +38,7 @@ int main(int argc, char const *argv[]) {
         exit(0);
     }
 
-    int ip_valid = validate_ip(argv[1]);
-    if (ip_valid == INVALID_IP) {
+    if (validate_ip(argv[1]) == INVALID_IP) {
         printf("Error: Invalid ip-address\n");
         exit(1);
     }
@@ -66,20 +66,23 @@ int main(int argc, char const *argv[]) {
     const char *menu_items[] = {"Login", "Register", "Exit"};
 
     int choice = process_menu(menu_items, 3);
-    printf("You chose: %d\n", choice);
-    // Register
-    char hasAcc;
-    printf("Do you have an account? (Y/N) ");
-    scanf("%c", &hasAcc);
-    if ((hasAcc == 'n') || (hasAcc == 'N'))
-        ftclient_register(sockfd);
+    switch (choice) {
+        case 0:
+            print_centered("Login to cppdrive");
+            handle_login(sockfd);
+            break;
+        case 1:
+            print_centered("Register new account");
+            register_acc(sockfd);
+            print_centered("Login to cppdrive");
+            handle_login(sockfd);
+            break;
+        case 2:
+            print_centered("Good bye!");
+            exit(0);
+    }
 
-    /* Get name and password and send to server */
-    printf("Please login!\n");
-    ftclient_login(sockfd);
-
-    while (1) {   // loop until user types quit
-
+    while (1) {
         // Get a command from user
         int cmd_stt = ftclient_read_command(user_input, sizeof(user_input), &cmd);
         if (cmd_stt == -1) {

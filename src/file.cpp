@@ -159,7 +159,7 @@ int copyDirectory(char *sourcePath, char *destinationPath) {
     }
 
     // Create the destination directory
-    createDirectory(destinationPath);
+    create_user_storage(destinationPath);
 
     // Iterate through all entries in the source directory
     while ((entry = readdir(dir)) != NULL) {
@@ -297,7 +297,7 @@ void ftserve_delete(int sock_control, char *arg) {
  * over data connection
  */
 void ftserve_mkdir(int sock_control, char *arg) {
-    if (createDirectory(arg) == 0)
+    if (create_user_storage(arg) == 0)
         send_response(sock_control, 254);
     else
         send_response(sock_control, 456);

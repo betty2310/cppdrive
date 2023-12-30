@@ -24,7 +24,9 @@
 #include "file.h"
 #include "find.h"
 #include "ls.h"
+#include "message.h"
 #include "pwd.h"
+#include "status.h"
 #include "utils.h"
 
 char root_dir[SIZE];
@@ -54,8 +56,6 @@ int main(int argc, char const *argv[]) {
             printf("Error: fork() failed\n");
         } else if (pid == 0) {
             ftserve_process(sockfd);
-            close(socket);
-            close(sockfd);
             exit(0);
         }
         close(sockfd);
@@ -64,7 +64,7 @@ int main(int argc, char const *argv[]) {
     return 0;
 }
 
-void ftserve_process(int sock_control) {
+void ftserve_process(int sockfd) {
     int sock_data;
     char cmd[5];
     char arg[SIZE];
@@ -72,70 +72,78 @@ void ftserve_process(int sock_control) {
     char user_dir[SIZE] = "user/";
     char *cur_user;
 
-    // receive Login or Register
-    ftserve_recv_cmd(sock_control, cmd, arg, nullptr);
+    Message msg;
+    recv_message(sockfd, &msg);
 
-    // Register user
-    if (strcmp(cmd, "REG ") == 0) {
-        if (ftserve_register(sock_control)) {
-            send_response(sock_control, 230);
-            // Receive login command
-            ftserve_recv_cmd(sock_control, cmd, arg, nullptr);
-        } else {
-            send_response(sock_control, 430);
-            exit(0);
-        }
-    }
-    // Authenticate user
-    if (strcmp(cmd, "LGIN") == 0) {
-        if (ftserve_login(sock_control, user_dir) == 1) {
-            send_response(sock_control, 230);
-        } else {
-            send_response(sock_control, 430);
-            exit(0);
-        }
+    switch (msg.type) {
+        case MSG_TYPE_AUTHEN:
+            Message response;
+            Status status;
+            if (server_login(msg, user_dir) == 1) {
+                status = LOGIN_SUCCESS;
+                response = create_status_message(MSG_TYPE_OK, status);
+                send_message(sockfd, response);
+            } else {
+                status = LOGIN_FAIL;
+                response = create_status_message(MSG_TYPE_ERROR, status);
+                send_message(sockfd, response);
+                exit(0);
+            }
+            break;
+        case MSG_TYPE_REGISTER:
+            if (server_register(sockfd, msg)) {
+                status = REGISTER_SUCCESS;
+                response = create_status_message(MSG_TYPE_OK, status);
+                send_message(sockfd, response);
+            } else {
+                exit(0);
+            }
+            break;
+        default:
+            break;
     }
 
     while (1) {
         // Wait for command
         cur_user = extractUsername(user_dir);
-        int rc = ftserve_recv_cmd(sock_control, cmd, arg, cur_user);
+        // TODO: handle relogin case
+        int rc = ftserve_recv_cmd(sockfd, cmd, arg, cur_user);
 
         if ((rc < 0) || (rc == 221)) {
             break;
         }
         if (rc == 200) {
             // Open data connection with client
-            if ((sock_data = ftserve_start_data_conn(sock_control)) < 0) {
-                close(sock_control);
+            if ((sock_data = ftserve_start_data_conn(sockfd)) < 0) {
+                close(sockfd);
                 exit(1);
             }
             // Execute command
             if (strcmp(cmd, "LIST") == 0) {   // Do list
                 ftserve_list(sock_data);
             } else if (strcmp(cmd, "CWD ") == 0) {   // change directory
-                ftpServer_cwd(sock_control, arg, user_dir);
+                ftpServer_cwd(sockfd, arg, user_dir);
             } else if (strcmp(cmd, "FIND") == 0) {   // find file
-                ftserve_find(sock_control, sock_data, arg);
+                ftserve_find(sockfd, sock_data, arg);
             } else if (strcmp(cmd, "SHRE") == 0) {   // share file
-                ftserve_share(sock_control, arg, cur_user);
+                ftserve_share(sockfd, arg, cur_user);
             } else if (strcmp(cmd, "RENM") == 0) {   // rename file and folder
-                ftserve_rename(sock_control, arg);
+                ftserve_rename(sockfd, arg);
             } else if (strcmp(cmd, "DEL ") == 0) {   // rename file and folder
-                ftserve_delete(sock_control, arg);
+                ftserve_delete(sockfd, arg);
             } else if (strcmp(cmd, "MOV ") == 0) {   // rename file and folder
-                ftserve_move(sock_control, arg);
+                ftserve_move(sockfd, arg);
             } else if (strcmp(cmd, "CPY ") == 0) {   // rename file and folder
-                ftserve_copy(sock_control, arg);
+                ftserve_copy(sockfd, arg);
             } else if (strcmp(cmd, "MKDR") == 0) {   // RETRIEVE: get file
-                ftserve_mkdir(sock_control, arg);
+                ftserve_mkdir(sockfd, arg);
             } else if (strcmp(cmd, "PWD ") == 0) {   // print working directory
-                ftpServer_pwd(sock_control, sock_data);
+                ftpServer_pwd(sockfd, sock_data);
             } else if (strcmp(cmd, "RETR") == 0) {   // RETRIEVE: get file
-                ftserve_retr(sock_control, sock_data, arg);
+                ftserve_retr(sockfd, sock_data, arg);
             } else if (strcmp(cmd, "STOR") == 0) {   // STOR: send file
                 printf("Receving ...\n");
-                recvFile(sock_control, sock_data, arg);
+                recvFile(sockfd, sock_data, arg);
             }
             // Close data connection
             close(sock_data);

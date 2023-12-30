@@ -10,6 +10,7 @@
 
 #include "common.h"
 #include "connect.h"
+#include "message.h"
 #include "reply.h"
 
 void sha256(const char *input, char *output) {
@@ -38,54 +39,43 @@ void sha256(const char *input, char *output) {
     output[2 * md_len] = '\0';
 }
 
-/**
- * Get login details from user and
- * send to server for authentication
- */
-void ftclient_login(int sock_control) {
-    struct command cmd;
+char *get_acc_from_cli() {
+    char *payload = (char *) malloc(PAYLOAD_SIZE);
+
     char user[SIZE];
     memset(user, 0, SIZE);
 
-    // Send LOGIN command to server
-    strcpy(cmd.code, "LGIN");
-    strcpy(cmd.arg, "");
-    ftclient_send_cmd(&cmd, sock_control);
-
-    // Wait for go-ahead
-    int wait;
-    recv(sock_control, &wait, sizeof(wait), 0);
-
-    // Get username from user
-    printf("Name: ");
+    printf("Enter username: ");
     fflush(stdout);
     read_input(user, SIZE);
+    strcat(payload, user);
 
-    // Send USER command to server
-    strcpy(cmd.code, "USER");
-    strcpy(cmd.arg, user);
-    ftclient_send_cmd(&cmd, sock_control);
-
-    // Wait for go-ahead to send password
-    recv(sock_control, &wait, sizeof(wait), 0);
-
-    // Get password from user
     fflush(stdout);
-    char *pass = getpass("Password: ");
+    char *pass = getpass("Enter password: ");
+    strcat(payload, " ");
+    strcat(payload, pass);
 
-    // Send PASS command to server
-    strcpy(cmd.code, "PASS");
-    strcpy(cmd.arg, pass);
-    ftclient_send_cmd(&cmd, sock_control);
+    return payload;
+}
 
-    // wait for response
-    int retcode = read_reply(sock_control);
-    switch (retcode) {
-        case 430:
-            printf("430 Invalid username/password or user in use.\n");
+void handle_login(int sockfd) {
+    Message msg;
+
+    char *payload = (char *) malloc(PAYLOAD_SIZE);
+    memset(payload, 0, PAYLOAD_SIZE);
+    payload = get_acc_from_cli();
+    msg = create_message(MSG_TYPE_AUTHEN, payload);
+
+    send_message(sockfd, msg);
+
+    Message response;
+    recv_message(sockfd, &response);
+    switch (response.type) {
+        case MSG_TYPE_ERROR:
+            printf("%s\n", response.payload);
             exit(0);
-        case 230:
-            printf("230 Successful login.\n");
+        case MSG_TYPE_OK:
+            printf("%s\n", response.payload);
             break;
         default:
             perror("error reading message from server");
@@ -94,55 +84,24 @@ void ftclient_login(int sock_control) {
     }
 }
 
-/**
- * Register new user
- */
-void ftclient_register(int sock_control) {
-    struct command cmd;
-    char user[SIZE];
-    memset(user, 0, SIZE);
+void register_acc(int sockfd) {
+    Message msg;
+    char *payload = (char *) malloc(PAYLOAD_SIZE);
+    memset(payload, 0, PAYLOAD_SIZE);
+    payload = get_acc_from_cli();
+    msg = create_message(MSG_TYPE_REGISTER, payload);
 
-    // Send REG command to server
-    strcpy(cmd.code, "REG");
-    ftclient_send_cmd(&cmd, sock_control);
+    send_message(sockfd, msg);
 
-    // Wait for go-ahead
-    int wait;
-    recv(sock_control, &wait, sizeof(wait), 0);
+    Message response;
+    recv_message(sockfd, &response);
 
-    // Send USER command to server
-    int rep;
-    do {
-        // Get username from user
-        printf("Name: ");
-        fflush(stdout);
-        read_input(user, SIZE);
-        strcpy(cmd.code, "USER");
-        strcpy(cmd.arg, user);
-        ftclient_send_cmd(&cmd, sock_control);
-        rep = read_reply(sock_control);
-        if (rep == 431)
-            printf("431 Username already exist.\n");
-    } while (rep == 431);
-
-    // Get password from user
-
-    fflush(stdout);
-    char *pass = getpass("Password: ");
-
-    // Send PASS command to server
-    strcpy(cmd.code, "PASS");
-    strcpy(cmd.arg, pass);
-    ftclient_send_cmd(&cmd, sock_control);
-
-    // wait for response
-    int retcode = read_reply(sock_control);
-    switch (retcode) {
-        case 431:
-            printf("431 Username already exist.\n");
+    switch (response.type) {
+        case MSG_TYPE_ERROR:
+            printf("%s\n", response.payload);
             exit(0);
-        case 230:
-            printf("230 Successfully registered.\n");
+        case MSG_TYPE_OK:
+            printf("%s\n", response.payload);
             break;
         default:
             perror("error reading message from server");
@@ -312,10 +271,10 @@ int ftserve_check_user(char *user, char *pass, char *user_dir) {
 }
 
 /**
- * Check if db has existing username
- * Return 1 if authenticated, 0 if not
+ * Check if username exist
+ * @return 1 if authenticated, 0 if not
  */
-int ftserve_check_username(char *user) {
+int check_username(char *user) {
     char username[SIZE];
     char *pch;
     char buf[SIZE];
@@ -348,10 +307,7 @@ int ftserve_check_username(char *user) {
     return check;
 }
 
-/**
- * Log in connected client
- */
-int ftserve_login(int sock_control, char *user_dir) {
+int server_login(Message msg, char *user_dir) {
     char buf[SIZE];
     char user[SIZE];
     char pass[SIZE];
@@ -359,92 +315,68 @@ int ftserve_login(int sock_control, char *user_dir) {
     memset(pass, 0, SIZE);
     memset(buf, 0, SIZE);
 
-    // Wait to receive username
-    if ((recv_data(sock_control, buf, sizeof(buf))) == -1) {
-        perror("recv error\n");
-        exit(1);
-    }
+    strcpy(buf, msg.payload);
+    strcpy(user, strtok(buf, " "));
+    strcpy(pass, strtok(NULL, " "));
 
-    strcpy(user, buf + 5);   // 'USER ' has 5 char
+    char *u;
+    u = user;
 
-    // tell client we're ready for password
-    send_response(sock_control, 331);
-
-    // Wait to receive password
-    memset(buf, 0, SIZE);
-    if ((recv_data(sock_control, buf, sizeof(buf))) == -1) {
-        perror("recv error\n");
-        exit(1);
-    }
-
-    strcpy(pass, buf + 5);   // 'PASS ' has 5 char
-
-    return (ftserve_check_user(user, pass, user_dir));
+    return (ftserve_check_user(u, pass, user_dir));
 }
 
-/**
- * Log in connected client
- */
-int ftserve_register(int sock_control) {
+int server_register(int sock_control, Message msg) {
     char buf[SIZE];
     char user[SIZE];
     char pass[SIZE];
-    char userDir[SIZE] = "user/";
+    char user_storage[SIZE] = "user/";
     memset(user, 0, SIZE);
     memset(pass, 0, SIZE);
     memset(buf, 0, SIZE);
 
-    // Wait to receive username
-    if ((recv_data(sock_control, buf, sizeof(buf))) == -1) {
-        perror("recv error\n");
-        exit(1);
-    }
+    strcpy(buf, msg.payload);
+    strcpy(user, strtok(buf, " "));
+    strcpy(pass, strtok(NULL, " "));
 
-    strcpy(user, buf + 5);   // 'USER ' has 5 char
-
-    while (ftserve_check_username(user)) {
-        // tell client username already exist
-        send_response(sock_control, 431);
+    Status status;
+    while (check_username(user)) {
+        status = USERNAME_EXIST;
+        Message response = create_status_message(MSG_TYPE_ERROR, status);
+        send_message(sock_control, response);
         // Wait to receive username
         if ((recv_data(sock_control, buf, sizeof(buf))) == -1) {
             perror("recv error\n");
             exit(1);
         }
-        strcpy(user, buf + 5);   // 'USER ' has 5 char
+        memset(user, 0, SIZE);
+        memset(pass, 0, SIZE);
+        memset(buf, 0, SIZE);
+
+        strcpy(buf, msg.payload);
+        strcpy(user, strtok(buf, " "));
+        strcpy(pass, strtok(NULL, " "));
     }
 
-    // tell client we're ready for password
-    send_response(sock_control, 331);
+    FILE *fp;
 
-    // Wait to receive password
-    memset(buf, 0, SIZE);
-    if ((recv_data(sock_control, buf, sizeof(buf))) == -1) {
-        perror("recv error\n");
+    fp = fopen(AUTH_FILE, "a");
+    if (fp == NULL) {
+        perror("AUTH_FILE not found");
         exit(1);
     }
+    fprintf(fp, "%s ", user);
+    char hash_pass[65];
+    sha256(pass, hash_pass);
+    fprintf(fp, "%s 0\n", hash_pass);
 
-    strcpy(pass, buf + 5);   // 'PASS ' has 5 char}
-
-    FILE *fptr;
-
-    fptr = fopen(AUTH_FILE, "a");
-    if (fptr == NULL) {
-        perror("file not found");
-        exit(1);
-    }
-    fprintf(fptr, "%s ", user);
-    char outputBuffer[65];
-    sha256(pass, outputBuffer);
-    fprintf(fptr, "%s 0\n", outputBuffer);
-
-    // Make new user folder
-    strcat(userDir, user);
-    createDirectory(userDir);
-    strcat(userDir, "/.shared");
+    // Create storage directory for new user
+    strcat(user_storage, user);
+    create_user_storage(user_storage);
+    strcat(user_storage, "/.shared");
     FILE *shared;
-    shared = fopen(userDir, "w");
+    shared = fopen(user_storage, "w");
     fclose(shared);
 
-    fclose(fptr);
+    fclose(fp);
     return 1;
 }
