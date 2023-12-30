@@ -19,6 +19,7 @@
 #include "common.h"
 #include "connect.h"
 #include "download.h"
+#include "log.h"
 #include "ls.h"
 #include "reply.h"
 #include "upload.h"

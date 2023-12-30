@@ -23,6 +23,7 @@
 #include "download.h"
 #include "file.h"
 #include "find.h"
+#include "log.h"
 #include "ls.h"
 #include "message.h"
 #include "pwd.h"
@@ -52,8 +53,10 @@ int main(int argc, char const *argv[]) {
             break;
 
         printf("New connection established\n");
+        server_log('i', "New connection established");
         if ((pid = fork()) < 0) {
             printf("Error: fork() failed\n");
+            server_log('e', "fork() failed");
         } else if (pid == 0) {
             ftserve_process(sockfd);
             exit(0);
@@ -83,6 +86,7 @@ void ftserve_process(int sockfd) {
                 status = LOGIN_SUCCESS;
                 response = create_status_message(MSG_TYPE_OK, status);
                 send_message(sockfd, response);
+                server_log('i', "Login success");
             } else {
                 status = LOGIN_FAIL;
                 response = create_status_message(MSG_TYPE_ERROR, status);
