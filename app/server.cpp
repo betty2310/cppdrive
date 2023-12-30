@@ -27,51 +27,50 @@
 #include "pwd.h"
 #include "utils.h"
 
-char root_dir[MAX_SIZE];
+char root_dir[SIZE];
 
-void ftserve_process(int sock_control);
+void ftserve_process(int sockfd);
 
-int main() {
+int main(int argc, char const *argv[]) {
     getcwd(root_dir, sizeof(root_dir));
-    int ListenSock, CtrlSock, pid;
+    int socket, sockfd, pid;
 
-    if ((ListenSock = socket_create(9000)) < 0) {
-        perror("Error creating socket");
+    if (argc != 2) {
+        printf("Usage: %s <port>\n", argv[0]);
+        exit(0);
+    }
+
+    if ((socket = socket_create(atoi(argv[1]))) < 0) {
+        printf("Error: Failed to create socket on port %s\n", argv[1]);
         exit(1);
     }
 
-    while (1) {   // wait for client request
-
-        // create new socket for control connection
-        if ((CtrlSock = socket_accept(ListenSock)) < 0)
+    while (1) {
+        if ((sockfd = socket_accept(socket)) < 0)
             break;
 
-        // create child process to do actual file transfer
+        printf("New connection established\n");
         if ((pid = fork()) < 0) {
-            perror("Error forking child process");
+            printf("Error: fork() failed\n");
         } else if (pid == 0) {
-            close(ListenSock);
-            ftserve_process(CtrlSock);
-            close(CtrlSock);
+            ftserve_process(sockfd);
+            close(socket);
+            close(sockfd);
             exit(0);
         }
-        close(CtrlSock);
+        close(sockfd);
     }
-
-    close(ListenSock);
+    close(socket);
     return 0;
 }
 
 void ftserve_process(int sock_control) {
     int sock_data;
     char cmd[5];
-    char arg[MAX_SIZE];
+    char arg[SIZE];
 
-    char user_dir[MAX_SIZE] = "user/";
+    char user_dir[SIZE] = "user/";
     char *cur_user;
-
-    // Send welcome message
-    send_response(sock_control, 220);
 
     // receive Login or Register
     ftserve_recv_cmd(sock_control, cmd, arg, nullptr);

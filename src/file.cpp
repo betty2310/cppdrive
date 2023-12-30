@@ -247,7 +247,7 @@ void processUserFolder(const char *userFolderPath, const char *excludedUsername,
     while ((entry = readdir(dir)) != NULL) {
         if (entry->d_type == DT_DIR && strcmp(entry->d_name, ".") != 0 &&
             strcmp(entry->d_name, "..") != 0) {
-            char subFolderPath[MAX_SIZE];
+            char subFolderPath[SIZE];
             snprintf(subFolderPath, sizeof(subFolderPath), "%s/%s", userFolderPath, entry->d_name);
 
             // Skip the excludedUsername
@@ -364,10 +364,10 @@ void ftserve_copy(int sock_control, char *arg) {
  */
 void ftserve_share(int sock_control, char *arg, char *cur_user) {
     char *user, *dir;
-    char shared_dir[MAX_SIZE] = "";
+    char shared_dir[SIZE] = "";
     strcat(shared_dir, root_dir);
     strcat(shared_dir, "/user/");
-    char file_dir[MAX_SIZE];
+    char file_dir[SIZE];
     getcwd(file_dir, sizeof(file_dir));
     if (splitString(arg, &user, &dir) == 0) {
         // 464 Must not share to yourself

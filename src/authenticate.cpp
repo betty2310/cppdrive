@@ -44,8 +44,8 @@ void sha256(const char *input, char *output) {
  */
 void ftclient_login(int sock_control) {
     struct command cmd;
-    char user[MAX_SIZE];
-    memset(user, 0, MAX_SIZE);
+    char user[SIZE];
+    memset(user, 0, SIZE);
 
     // Send LOGIN command to server
     strcpy(cmd.code, "LGIN");
@@ -59,7 +59,7 @@ void ftclient_login(int sock_control) {
     // Get username from user
     printf("Name: ");
     fflush(stdout);
-    read_input(user, MAX_SIZE);
+    read_input(user, SIZE);
 
     // Send USER command to server
     strcpy(cmd.code, "USER");
@@ -99,8 +99,8 @@ void ftclient_login(int sock_control) {
  */
 void ftclient_register(int sock_control) {
     struct command cmd;
-    char user[MAX_SIZE];
-    memset(user, 0, MAX_SIZE);
+    char user[SIZE];
+    memset(user, 0, SIZE);
 
     // Send REG command to server
     strcpy(cmd.code, "REG");
@@ -116,7 +116,7 @@ void ftclient_register(int sock_control) {
         // Get username from user
         printf("Name: ");
         fflush(stdout);
-        read_input(user, MAX_SIZE);
+        read_input(user, SIZE);
         strcpy(cmd.code, "USER");
         strcpy(cmd.arg, user);
         ftclient_send_cmd(&cmd, sock_control);
@@ -208,7 +208,7 @@ void cleanUpFile(const char *filename) {
     while (fgets(line, sizeof(line), file)) {
         // Remove newline character
         strtok(line, "\n");
-        char dir[MAX_SIZE] = "";
+        char dir[SIZE] = "";
         strcat(dir, root_dir);
         strcat(dir, line);
 
@@ -243,13 +243,13 @@ void cleanUpFile(const char *filename) {
  * Return 1 if authenticated, 0 if not
  */
 int ftserve_check_user(char *user, char *pass, char *user_dir) {
-    char username[MAX_SIZE];
-    char password[MAX_SIZE];
-    char curDir[MAX_SIZE];
-    char shared[MAX_SIZE] = "";
+    char username[SIZE];
+    char password[SIZE];
+    char curDir[SIZE];
+    char shared[SIZE] = "";
     int isLock;
     char *pch;
-    char buf[MAX_SIZE];
+    char buf[SIZE];
     char *line = NULL;
     size_t num_read;
     size_t len = 0;
@@ -263,7 +263,7 @@ int ftserve_check_user(char *user, char *pass, char *user_dir) {
     }
 
     while ((num_read = getline(&line, &len, fd)) != (size_t) -1) {
-        memset(buf, 0, MAX_SIZE);
+        memset(buf, 0, SIZE);
         strcpy(buf, line);
 
         pch = strtok(buf, " ");
@@ -316,9 +316,9 @@ int ftserve_check_user(char *user, char *pass, char *user_dir) {
  * Return 1 if authenticated, 0 if not
  */
 int ftserve_check_username(char *user) {
-    char username[MAX_SIZE];
+    char username[SIZE];
     char *pch;
-    char buf[MAX_SIZE];
+    char buf[SIZE];
     char *line = NULL;
     size_t num_read;
     size_t len = 0;
@@ -332,7 +332,7 @@ int ftserve_check_username(char *user) {
     }
 
     while ((num_read = getline(&line, &len, fd)) != (size_t) -1) {
-        memset(buf, 0, MAX_SIZE);
+        memset(buf, 0, SIZE);
         strcpy(buf, line);
 
         pch = strtok(buf, " ");
@@ -352,12 +352,12 @@ int ftserve_check_username(char *user) {
  * Log in connected client
  */
 int ftserve_login(int sock_control, char *user_dir) {
-    char buf[MAX_SIZE];
-    char user[MAX_SIZE];
-    char pass[MAX_SIZE];
-    memset(user, 0, MAX_SIZE);
-    memset(pass, 0, MAX_SIZE);
-    memset(buf, 0, MAX_SIZE);
+    char buf[SIZE];
+    char user[SIZE];
+    char pass[SIZE];
+    memset(user, 0, SIZE);
+    memset(pass, 0, SIZE);
+    memset(buf, 0, SIZE);
 
     // Wait to receive username
     if ((recv_data(sock_control, buf, sizeof(buf))) == -1) {
@@ -371,7 +371,7 @@ int ftserve_login(int sock_control, char *user_dir) {
     send_response(sock_control, 331);
 
     // Wait to receive password
-    memset(buf, 0, MAX_SIZE);
+    memset(buf, 0, SIZE);
     if ((recv_data(sock_control, buf, sizeof(buf))) == -1) {
         perror("recv error\n");
         exit(1);
@@ -386,13 +386,13 @@ int ftserve_login(int sock_control, char *user_dir) {
  * Log in connected client
  */
 int ftserve_register(int sock_control) {
-    char buf[MAX_SIZE];
-    char user[MAX_SIZE];
-    char pass[MAX_SIZE];
-    char userDir[MAX_SIZE] = "user/";
-    memset(user, 0, MAX_SIZE);
-    memset(pass, 0, MAX_SIZE);
-    memset(buf, 0, MAX_SIZE);
+    char buf[SIZE];
+    char user[SIZE];
+    char pass[SIZE];
+    char userDir[SIZE] = "user/";
+    memset(user, 0, SIZE);
+    memset(pass, 0, SIZE);
+    memset(buf, 0, SIZE);
 
     // Wait to receive username
     if ((recv_data(sock_control, buf, sizeof(buf))) == -1) {
@@ -417,7 +417,7 @@ int ftserve_register(int sock_control) {
     send_response(sock_control, 331);
 
     // Wait to receive password
-    memset(buf, 0, MAX_SIZE);
+    memset(buf, 0, SIZE);
     if ((recv_data(sock_control, buf, sizeof(buf))) == -1) {
         perror("recv error\n");
         exit(1);

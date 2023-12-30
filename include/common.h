@@ -1,7 +1,7 @@
 #ifndef __COMMON_H__
 #define __COMMON_H__
 
-#define MAX_SIZE       1024
+#define SIZE           1024
 #define INVALID_SOCKET -1
 #define INVALID_IP     -1
 #define PORT           9000
@@ -13,11 +13,11 @@ typedef struct sockaddr SOCKADDR;
 typedef struct addrinfo ADDRINFO;
 
 struct command {
-    char arg[MAX_SIZE];
+    char arg[SIZE];
     char code[5];
 };
 
-extern char root_dir[MAX_SIZE];
+extern char root_dir[SIZE];
 
 /*Validating IP Address*/
 int validate_ip(const char *ip);

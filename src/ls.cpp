@@ -13,10 +13,10 @@
 
 int ftclient_list(int sock_data) {
     size_t num_recvd;     // number of bytes received with recv()
-    char buf[MAX_SIZE];   // hold a filename received from server
+    char buf[SIZE];   // hold a filename received from server
 
     memset(buf, 0, sizeof(buf));
-    while ((num_recvd = recv(sock_data, buf, MAX_SIZE, 0)) > 0) {
+    while ((num_recvd = recv(sock_data, buf, SIZE, 0)) > 0) {
         printf("%s", buf);
         memset(buf, 0, sizeof(buf));
     }
@@ -26,9 +26,9 @@ int ftclient_list(int sock_data) {
 
 int ftserve_list(int sock_data) {
     struct dirent **output = NULL;
-    char curr_dir[MAX_SIZE], msgToClient[MAX_SIZE];
-    memset(curr_dir, 0, MAX_SIZE);
-    memset(msgToClient, 0, MAX_SIZE);
+    char curr_dir[SIZE], msgToClient[SIZE];
+    memset(curr_dir, 0, SIZE);
+    memset(msgToClient, 0, SIZE);
 
     getcwd(curr_dir, sizeof(curr_dir));
     int n = scandir(curr_dir, &output, NULL, NULL);

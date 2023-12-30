@@ -12,7 +12,7 @@
 #include "reply.h"
 
 int ftclient_get(int data_sock, int sock_control, char *arg) {
-    char data[MAX_SIZE];
+    char data[SIZE];
     int size, stt = 0;
     int isReceiveFile = read_reply(sock_control);
 
@@ -22,13 +22,13 @@ int ftclient_get(int data_sock, int sock_control, char *arg) {
         return -1;
     }
 
-    char folderName[MAX_SIZE];
+    char folderName[SIZE];
     strcpy(folderName, arg);
     if (!isReceiveFile)
         strcat(arg, ".zip");
     FILE *fd = fopen(arg, "w");
 
-    while ((size = recv(data_sock, data, MAX_SIZE, 0)) > 0) fwrite(data, 1, size, fd);
+    while ((size = recv(data_sock, data, SIZE, 0)) > 0) fwrite(data, 1, size, fd);
 
     if (size < 0)
         perror("error\n");
@@ -44,7 +44,7 @@ int ftclient_get(int data_sock, int sock_control, char *arg) {
 }
 
 int recvFile(int sock_control, int sock_data, char *filename) {
-    char data[MAX_SIZE];
+    char data[SIZE];
     int size, stt = 0;
     int isReceiveFile = read_reply(sock_control);
 
@@ -59,13 +59,13 @@ int recvFile(int sock_control, int sock_data, char *filename) {
         return -1;
     }
 
-    char folderName[MAX_SIZE];
+    char folderName[SIZE];
     strcpy(folderName, filename);
     if (!isReceiveFile)
         strcat(filename, ".zip");
     FILE *fd = fopen(filename, "w");
 
-    while ((size = recv(sock_data, data, MAX_SIZE, 0)) > 0) {
+    while ((size = recv(sock_data, data, SIZE, 0)) > 0) {
         fwrite(data, 1, size, fd);
     }
 
@@ -87,11 +87,11 @@ int recvFile(int sock_control, int sock_data, char *filename) {
  */
 void ftserve_retr(int sock_control, int sock_data, char *filename) {
     FILE *fd = NULL;
-    char data[MAX_SIZE];
-    memset(data, 0, MAX_SIZE);
+    char data[SIZE];
+    memset(data, 0, SIZE);
     size_t num_read;
 
-    char tempZip[MAX_SIZE];
+    char tempZip[SIZE];
     int isDir = isDirectory(filename);
 
     if (isDir) {
@@ -114,7 +114,7 @@ void ftserve_retr(int sock_control, int sock_data, char *filename) {
         send_response(sock_control, 150);
 
         do {
-            num_read = fread(data, 1, MAX_SIZE, fd);
+            num_read = fread(data, 1, SIZE, fd);
             // send block
             if (send(sock_data, data, num_read, 0) < 0)
                 perror("error sending file\n");

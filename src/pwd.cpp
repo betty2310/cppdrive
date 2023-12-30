@@ -11,9 +11,9 @@
 #include "connect.h"
 
 void ftpServer_pwd(int sock_control, int sock_data) {
-    char curr_dir[MAX_SIZE - 2], msgToClient[MAX_SIZE];
-    memset(curr_dir, 0, MAX_SIZE - 2);
-    memset(msgToClient, 0, MAX_SIZE);
+    char curr_dir[SIZE - 2], msgToClient[SIZE];
+    memset(curr_dir, 0, SIZE - 2);
+    memset(msgToClient, 0, SIZE);
 
     getcwd(curr_dir, sizeof(curr_dir));
     sprintf(msgToClient, "%s\n", curr_dir);

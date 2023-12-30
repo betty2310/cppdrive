@@ -11,12 +11,12 @@
 
 void upload(int data_sock, char *filename, int sock_control) {
     FILE *fd = NULL;
-    char data[MAX_SIZE];
-    memset(data, 0, MAX_SIZE);
+    char data[SIZE];
+    memset(data, 0, SIZE);
     size_t num_read;
     int stt;
 
-    char tempZip[MAX_SIZE];
+    char tempZip[SIZE];
     int isDir = isDirectory(filename);
 
     if (isDir) {
@@ -42,7 +42,7 @@ void upload(int data_sock, char *filename, int sock_control) {
         send(sock_control, &stt, sizeof(stt), 0);
 
         do {
-            num_read = fread(data, 1, MAX_SIZE, fd);
+            num_read = fread(data, 1, SIZE, fd);
             send(data_sock, data, num_read, 0);
         } while (num_read > 0);
         fclose(fd);

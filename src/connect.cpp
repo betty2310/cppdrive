@@ -174,11 +174,11 @@ int ftserve_start_data_conn(int sock_control) {
  */
 int ftserve_recv_cmd(int sock_control, char *cmd, char *arg, char *cur_user) {
     int rc = 200;
-    char user_input[MAX_SIZE];
+    char user_input[SIZE];
 
-    memset(user_input, 0, MAX_SIZE);
+    memset(user_input, 0, SIZE);
     memset(cmd, 0, 5);
-    memset(arg, 0, MAX_SIZE);
+    memset(arg, 0, SIZE);
 
     // Wait to receive command
     if ((recv_data(sock_control, user_input, sizeof(user_input))) == -1) {

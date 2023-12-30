@@ -60,8 +60,8 @@ SearchResult searchInDirectory(char *dirPath, char *fileName) {
  * Return -1 on error, 0 on success
  */
 void ftserve_find(int sock_control, int sock_data, char *filename) {
-    char curr_dir[MAX_SIZE - 2];
-    memset(curr_dir, 0, MAX_SIZE - 2);
+    char curr_dir[SIZE - 2];
+    memset(curr_dir, 0, SIZE - 2);
     getcwd(curr_dir, sizeof(curr_dir));
     SearchResult result = searchInDirectory(curr_dir, filename);
 
