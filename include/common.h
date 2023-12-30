@@ -3,7 +3,6 @@
 
 #define SIZE           1024
 #define INVALID_SOCKET -1
-#define INVALID_IP     -1
 #define PORT           9000
 #define DEFAULT_PORT   3001
 #define AUTH_FILE      ".auth"
@@ -19,8 +18,6 @@ struct command {
 
 extern char root_dir[SIZE];
 
-/*Validating IP Address*/
-int validate_ip(const char *ip);
 void read_input(char *user_input, int size);
 int isFile(const char *path);
 int isDirectory(const char *path);
@@ -41,8 +38,12 @@ int splitString(char *input, char **str1, char **str2);
 // Function to lock or unlock a user in the .auth file (0 for unlock, 1 for lock)
 void toggleUserLock(const char *username, int lockStatus);
 
-// Function to create a directory
-int createDirectory(const char *path);
+/**
+ * create user storage
+ * @param path path to user storage
+ * @return 0 if success, -1 if error
+ */
+int create_user_storage(const char *path);
 
 // Function to extract the username from userpath
 char *extractUsername(char *path);

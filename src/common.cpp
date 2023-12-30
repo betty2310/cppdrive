@@ -8,34 +8,6 @@
 #include <cstdlib>
 #include <cstring>
 
-int validate_ip(const char *ip) {
-    int value_1 = -1;
-    int value_2 = -1;
-    int value_3 = -1;
-    int value_4 = -1;
-    int count = 0;
-    int i = 0;
-
-    while (ip[i] != '\0') {
-        if (ip[i] == '.')
-            count++;
-        i++;
-    }
-
-    if (count != 3)
-        return INVALID_IP;
-    else {
-        sscanf(ip, "%d.%d.%d.%d", &value_1, &value_2, &value_3, &value_4);
-
-        if (value_1 < 0 || value_2 < 0 || value_3 < 0 || value_4 < 0 || value_1 > 255 ||
-            value_2 > 255 || value_3 > 255 ||
-            value_4 > 255) /* IP Addresses from 0.0.0.0 to 255.255.255.255*/
-            return INVALID_IP;
-        else
-            return 1;
-    }
-}
-
 /**
  * Read input from command line
  */
@@ -181,18 +153,16 @@ void toggleUserLock(const char *username, int lockStatus) {
     printf("User '%s' has been %s.\n", username, lockStatus == 1 ? "locked" : "unlocked");
 }
 
-// Function to create a directory
-int createDirectory(const char *path) {
+int create_user_storage(const char *path) {
     int status = 0;
-    status = mkdir(path, 0755);   // 0755 provides read, write, execute permissions for owner, and
-                                  // read, execute permissions for group and others
+    status = mkdir(path, 0755);
 
     if (status == 0) {
         printf("Directory %s created successfully.\n", path);
-        return 0;   // Success
+        return 0;
     } else {
         perror("Error creating directory");
-        return -1;   // Error
+        return -1;
     }
 }
 
