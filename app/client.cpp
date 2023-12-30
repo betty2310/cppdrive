@@ -24,16 +24,16 @@
 #include "upload.h"
 #include "utils.h"
 
-char root_dir[MAX_SIZE];
+char root_dir[SIZE];
 
 int main(int argc, char const *argv[]) {
-    int sock_control;
+    int sockfd;
     int data_sock, retcode;
-    char user_input[MAX_SIZE];
+    char user_input[SIZE];
     struct command cmd;
 
-    if (argc != 2) {
-        printf("usage: ./%s <ip> <port>\n", argv[0]);
+    if (argc != 3) {
+        printf("Usage: %s <ip_adress> <port>\n", argv[0]);
         exit(0);
     }
 
@@ -43,40 +43,40 @@ int main(int argc, char const *argv[]) {
         exit(1);
     }
 
-    sock_control = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    sockfd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 
-    if (sock_control == INVALID_SOCKET) {
-        perror("Error");
+    if (sockfd == INVALID_SOCKET) {
+        perror("Error: ");
         exit(1);
     }
 
-    SOCKADDR_IN servAddr;
+    SOCKADDR_IN sock_addr;
 
-    servAddr.sin_family = AF_INET;
-    servAddr.sin_port = htons(PORT);   // use some unused port number
-    servAddr.sin_addr.s_addr = inet_addr(argv[1]);
+    sock_addr.sin_family = AF_INET;
+    sock_addr.sin_port = htons(atoi(argv[2]));
+    sock_addr.sin_addr.s_addr = inet_addr(argv[1]);
 
-    int connectStatus = connect(sock_control, (SOCKADDR *) &servAddr, sizeof(servAddr));
+    int connect_status = connect(sockfd, (SOCKADDR *) &sock_addr, sizeof(sock_addr));
 
-    if (connectStatus == -1) {
-        printf("Error...\n");
+    if (connect_status == -1) {
+        printf("Error: Connection failed!\n");
         exit(1);
     }
 
-    // Get connection, welcome messages
-    printf("Connected to %s.\n", argv[1]);
-    print_reply(read_reply(sock_control));
+    const char *menu_items[] = {"Login", "Register", "Exit"};
 
+    int choice = process_menu(menu_items, 3);
+    printf("You chose: %d\n", choice);
     // Register
     char hasAcc;
     printf("Do you have an account? (Y/N) ");
     scanf("%c", &hasAcc);
     if ((hasAcc == 'n') || (hasAcc == 'N'))
-        ftclient_register(sock_control);
+        ftclient_register(sockfd);
 
     /* Get name and password and send to server */
     printf("Please login!\n");
-    ftclient_login(sock_control);
+    ftclient_login(sockfd);
 
     while (1) {   // loop until user types quit
 
@@ -87,12 +87,12 @@ int main(int argc, char const *argv[]) {
             continue;   // loop back for another command
         } else if (cmd_stt == 0) {
             // Send command to server
-            if (send(sock_control, user_input, strlen(user_input), 0) < 0) {
-                close(sock_control);
+            if (send(sockfd, user_input, strlen(user_input), 0) < 0) {
+                close(sockfd);
                 exit(1);
             }
 
-            retcode = read_reply(sock_control);
+            retcode = read_reply(sockfd);
             if (retcode == 221) {
                 /* If command was quit, just exit */
                 print_reply(221);
@@ -106,7 +106,7 @@ int main(int argc, char const *argv[]) {
                 // Command is valid (RC = 200), process command
 
                 // open data connection
-                if ((data_sock = ftclient_open_conn(sock_control)) < 0) {
+                if ((data_sock = ftclient_open_conn(sockfd)) < 0) {
                     perror("Error opening socket for data connection");
                     exit(1);
                 }
@@ -115,7 +115,7 @@ int main(int argc, char const *argv[]) {
                 if (strcmp(cmd.code, "LIST") == 0) {
                     ftclient_list(data_sock);
                 } else if (strcmp(cmd.code, "CWD ") == 0) {
-                    int repl = read_reply(sock_control);
+                    int repl = read_reply(sockfd);
                     if (repl == 250)
                         print_reply(250);
                     else if (repl == 551)
@@ -123,16 +123,16 @@ int main(int argc, char const *argv[]) {
                     else
                         printf("%s is not a directory\n", cmd.arg);
                 } else if (strcmp(cmd.code, "FIND") == 0) {
-                    int repl = read_reply(sock_control);
+                    int repl = read_reply(sockfd);
                     // File found
                     if (repl == 241) {
-                        int nums = read_reply(sock_control);
+                        int nums = read_reply(sockfd);
                         for (int i = 0; i < nums; ++i)
                             ftclient_list(data_sock);   // ham nay in mess tu server
                     } else if (repl == 441)
                         printf("441 File not found!\n");
                 } else if (strcmp(cmd.code, "RENM") == 0) {
-                    int repl = read_reply(sock_control);
+                    int repl = read_reply(sockfd);
                     if (repl == 251)
                         printf("251 Rename successfully\n");
                     else if (repl == 451)
@@ -140,13 +140,13 @@ int main(int argc, char const *argv[]) {
                     else if (repl == 452)
                         printf("452 Syntax error (renm <oldfilename> <newfilename>)\n");
                 } else if (strcmp(cmd.code, "DEL ") == 0) {
-                    int repl = read_reply(sock_control);
+                    int repl = read_reply(sockfd);
                     if (repl == 252)
                         printf("252 Delete successfully\n");
                     else if (repl == 453)
                         printf("451 Delete failure\n");
                 } else if (strcmp(cmd.code, "MOV ") == 0) {
-                    int repl = read_reply(sock_control);
+                    int repl = read_reply(sockfd);
                     if (repl == 253)
                         printf("253 Moved successfully\n");
                     else if (repl == 454)
@@ -154,7 +154,7 @@ int main(int argc, char const *argv[]) {
                     else if (repl == 455)
                         printf("455 Syntax error (mov <filepath> <newfilepath>)\n");
                 } else if (strcmp(cmd.code, "CPY ") == 0) {
-                    int repl = read_reply(sock_control);
+                    int repl = read_reply(sockfd);
                     if (repl == 253)
                         printf("253 Copied successfully\n");
                     else if (repl == 454)
@@ -162,7 +162,7 @@ int main(int argc, char const *argv[]) {
                     else if (repl == 455)
                         printf("455 Syntax error (cpy <filepath> <newfilepath>)\n");
                 } else if (strcmp(cmd.code, "SHRE") == 0) {
-                    int repl = read_reply(sock_control);
+                    int repl = read_reply(sockfd);
                     if (repl == 261)
                         printf("261 Shared successfully\n");
                     else if (repl == 462)
@@ -174,20 +174,20 @@ int main(int argc, char const *argv[]) {
                     else if (repl == 461)
                         printf("461 Syntax error (share <username> <filename>)\n");
                 } else if (strcmp(cmd.code, "MKDR") == 0) {
-                    int repl = read_reply(sock_control);
+                    int repl = read_reply(sockfd);
                     if (repl == 254)
                         printf("254 Mkdir successfully\n");
                     else if (repl == 456)
                         printf("451 Mkdir failure\n");
                 } else if (strcmp(cmd.code, "PWD ") == 0) {
-                    if (read_reply(sock_control) == 212) {
+                    if (read_reply(sockfd) == 212) {
                         ftclient_list(data_sock);   // ham nay in mess tu server
                     }
                 } else if (strcmp(cmd.code, "RETR") == 0) {
-                    ftclient_get(data_sock, sock_control, cmd.arg);
+                    ftclient_get(data_sock, sockfd, cmd.arg);
                 } else if (strcmp(cmd.code, "STOR") == 0) {
                     printf("Uploading ...\n");
-                    upload(data_sock, cmd.arg, sock_control);
+                    upload(data_sock, cmd.arg, sockfd);
                     printf("xong\n");
                 }
                 close(data_sock);
@@ -197,6 +197,6 @@ int main(int argc, char const *argv[]) {
     }   // loop back to get more user input
 
     // Close the socket (control connection)
-    close(sock_control);
+    close(sockfd);
     return 0;
 }
