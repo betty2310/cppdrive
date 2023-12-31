@@ -107,3 +107,41 @@ int process_menu(const char *menu_items[], int num_items) {
     disable_raw_mode(&orig_termios);
     return current_selection;
 }
+
+char *handle_prompt(char *cur_user, char *user_dir) {
+    const std::string app_name = "cppdrive";
+    std::vector<std::string> tokens;
+    std::string token;
+    std::string user_dir_str(user_dir);
+    std::istringstream tokenStream(user_dir_str);
+
+    while (getline(tokenStream, token, '/')) {
+        if (!token.empty()) {
+            tokens.push_back(token);
+        }
+    }
+
+    // Find the index of cur_user in the tokens
+    size_t user_index = std::string::npos;
+    for (size_t i = 0; i < tokens.size(); ++i) {
+        if (tokens[i] == cur_user) {
+            user_index = i;
+            break;
+        }
+    }
+
+    char *prompt = (char *) malloc(sizeof(char) * 100);
+    if (user_index == std::string::npos) {
+        sprintf(prompt, "[%s@%s ~/]$ ", cur_user, app_name.c_str());
+        return prompt;
+    }
+
+    // Construct the path from the user's directory onwards
+    std::string path = "~/";
+    for (size_t i = user_index + 1; i < tokens.size(); ++i) {
+        path += tokens[i] + "/";
+    }
+
+    sprintf(prompt, "[%s@%s %s]$ ", cur_user, app_name.c_str(), path.c_str());
+    return prompt;
+}

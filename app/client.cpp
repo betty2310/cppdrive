@@ -16,6 +16,7 @@
 #include <unistd.h>
 
 #include "authenticate.h"
+#include "color.h"
 #include "common.h"
 #include "connect.h"
 #include "download.h"
@@ -32,6 +33,7 @@ int main(int argc, char const *argv[]) {
     int sockfd;
     int data_sock;
     char user_input[SIZE];
+    char *cur_user;
     struct command cmd;
 
     if (argc != 3) {
@@ -70,13 +72,13 @@ int main(int argc, char const *argv[]) {
     switch (choice) {
         case 0:
             print_centered("Login to cppdrive");
-            handle_login(sockfd);
+            cur_user = handle_login(sockfd);
             break;
         case 1:
             print_centered("Register new account");
             register_acc(sockfd);
             print_centered("Login to cppdrive");
-            handle_login(sockfd);
+            cur_user = handle_login(sockfd);
             break;
         case 2:
             print_centered("Good bye!");
@@ -84,8 +86,11 @@ int main(int argc, char const *argv[]) {
     }
 
     // begin shell
+    char *user_dir = (char *) malloc(SIZE);
+    strcpy(user_dir, "~/");
     while (1) {
-        printf("ftp@cppdrive ");
+        char *prompt = handle_prompt(cur_user, user_dir);
+        printf(ANSI_COLOR_GREEN "%s" ANSI_RESET, prompt);
         fflush(stdout);
         Message command;
         int cmd_stt = ftclient_read_command(user_input, sizeof(user_input), &cmd, &command);
@@ -109,14 +114,19 @@ int main(int argc, char const *argv[]) {
         // execute command
         if (command.type == MSG_TYPE_LS) {
             list(data_sock);
-        } else if (strcmp(cmd.code, "CWD ") == 0) {
-            int repl = read_reply(sockfd);
-            if (repl == 250)
-                print_reply(250);
-            else if (repl == 551)
-                print_reply(551);
-            else
-                printf("%s is not a directory\n", cmd.arg);
+        } else if (command.type == MSG_TYPE_CD) {
+            Message response;
+            recv_message(sockfd, &response);
+            switch (response.type) {
+                case MSG_DATA_CD:
+                    strcpy(user_dir, response.payload);
+                    break;
+                case MSG_TYPE_ERROR:
+                    printf("%s\n", response.payload);
+                    break;
+                default:
+                    break;
+            }
         } else if (strcmp(cmd.code, "FIND") == 0) {
             int repl = read_reply(sockfd);
             // File found

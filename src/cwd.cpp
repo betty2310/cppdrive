@@ -8,38 +8,30 @@
 
 #include "common.h"
 #include "connect.h"
+#include "message.h"
+#include "status.h"
 
-// Function to check if a directory is a subdirectory of the base directory
-int isSubdirectory(const char *baseDir, const char *dir) {
-    size_t baseDirLen = strlen(baseDir);
-
-    if (strncmp(baseDir, dir, baseDirLen) == 0) {
-        if (dir[baseDirLen] == '\0' || dir[baseDirLen] == '/')
-            return 1;   // It is a subdirectory
+int is_subdir(const char *baseDir, const char *dir) {
+    while (*baseDir) {
+        if (*baseDir++ != *dir++)
+            return 0;   // It is not a subdirectory
     }
 
-    return 0;   // It is not a subdirectory
+    return (*dir == '\0' || *dir == '/') ? 1 : 0;   // Check if it is a subdirectory
 }
 
-/**
- * Change directory
- * Return -1 on error, 0 on success
- */
-int ftpServer_cwd(int sock_control, char *folderName, char *user_dir) {
+int server_cd(int sockfd, char *dir, char *user_dir) {
     char cur_dir[SIZE];
     char prev_dir[SIZE];
-    getcwd(prev_dir, sizeof(prev_dir));
-
-    if (chdir(folderName) == 0)   // change directory
-    {
+    if (chdir(dir) == 0) {
         getcwd(cur_dir, sizeof(cur_dir));
-        if (!isSubdirectory(user_dir, cur_dir)) {
+        if (!is_subdir(user_dir, cur_dir)) {
             chdir(prev_dir);
-            send_response(sock_control, 551);   // 551 Directory out of user scope
+            send_message(sockfd, create_status_message(MSG_TYPE_ERROR, DIRECTORY_NOT_FOUND));
         } else
-            send_response(sock_control, 250);   // 250 Directory successfully changed.
+            send_message(sockfd, create_message(MSG_DATA_CD, cur_dir));
     } else {
-        send_response(sock_control, 550);   // 550 Requested action not taken
+        send_message(sockfd, create_status_message(MSG_TYPE_ERROR, DIRECTORY_NOT_FOUND));
     }
     return 0;
 }

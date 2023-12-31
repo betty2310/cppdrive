@@ -54,6 +54,9 @@ std::string status_str(Status code) {
         case SERVER_ERROR:
             return "Something error!!";
             break;
+        case DIRECTORY_NOT_FOUND:
+            return "cd: No such file or directory!";
+            break;
         default:
             break;
     }

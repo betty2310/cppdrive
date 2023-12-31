@@ -129,7 +129,9 @@ void ftserve_process(int sockfd) {
             case MSG_TYPE_LS:
                 server_list(sock_data);
                 break;
-
+            case MSG_TYPE_CD:
+                server_cd(sockfd, msg.payload, user_dir);
+                break;
             default:
                 break;
         }
@@ -137,7 +139,7 @@ void ftserve_process(int sockfd) {
         if (strcmp(cmd, "LIST") == 0) {   // Do list
             server_list(sock_data);
         } else if (strcmp(cmd, "CWD ") == 0) {   // change directory
-            ftpServer_cwd(sockfd, arg, user_dir);
+            server_cd(sockfd, arg, user_dir);
         } else if (strcmp(cmd, "FIND") == 0) {   // find file
             ftserve_find(sockfd, sock_data, arg);
         } else if (strcmp(cmd, "SHRE") == 0) {   // share file

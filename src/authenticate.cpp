@@ -58,12 +58,13 @@ char *get_acc_from_cli() {
     return payload;
 }
 
-void handle_login(int sockfd) {
+char *handle_login(int sockfd) {
     Message msg;
 
     char *payload = (char *) malloc(PAYLOAD_SIZE);
     memset(payload, 0, PAYLOAD_SIZE);
     payload = get_acc_from_cli();
+
     msg = create_message(MSG_TYPE_AUTHEN, payload);
 
     send_message(sockfd, msg);
@@ -82,6 +83,7 @@ void handle_login(int sockfd) {
             exit(1);
             break;
     }
+    return strtok(payload, " ");
 }
 
 void register_acc(int sockfd) {

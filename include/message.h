@@ -11,7 +11,9 @@ typedef enum {
     MSG_TYPE_AUTHEN,
     MSG_TYPE_REGISTER,
     MSG_TYPE_LS,
+    MSG_TYPE_CD,
     MSG_DATA_LS,
+    MSG_DATA_CD,
 } MessageType;
 
 struct Message_ {

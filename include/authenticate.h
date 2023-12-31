@@ -10,8 +10,9 @@ void sha256(const char *input, char *output);
 /**
  * Login to cppdrive
  * @param sock_control socket for control connection
+ * @return current user logged in
  */
-void handle_login(int sock_control);
+char *handle_login(int sock_control);
 
 /**
  * Register new account

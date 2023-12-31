@@ -83,6 +83,8 @@ int ftclient_read_command(char *user_input, int size, struct command *cstruct, M
         memset(user_input, 0, SIZE);
         strcpy(user_input, cstruct->code);
     } else if (strncmp(user_input, "cd ", 3) == 0) {
+        msg->type = MSG_TYPE_CD;
+        strcpy(msg->payload, user_input + 3);
         strcpy(cstruct->code, "CWD ");
         strcpy(cstruct->arg, user_input + 3);
 

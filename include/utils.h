@@ -1,6 +1,10 @@
 #ifndef __UTILS_H__
 #define __UTILS_H__
 
+#include <sstream>
+#include <string>
+#include <vector>
+
 #include "color.h"
 
 #define UP_ARROW   "\033[A"
@@ -21,5 +25,13 @@ void print_centered(const char *text);
  * @param num_items number of options
  */
 int process_menu(const char *menu_items[], int num_items);
+
+/**
+ * get prompt string from current user and current directory
+ * @param cur_user current user
+ * @param user_dir current directory
+ * @return prompt string
+ */
+char *handle_prompt(char *cur_user, char *user_dir);
 
 #endif   // !__UTILS
