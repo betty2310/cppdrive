@@ -29,6 +29,7 @@
 #include "pwd.h"
 #include "quit.h"
 #include "status.h"
+#include "upload.h"
 #include "utils.h"
 
 char root_dir[SIZE];
@@ -136,6 +137,9 @@ void ftserve_process(int sockfd) {
             case MSG_TYPE_DOWNLOAD:
                 server_download(sockfd, sock_data, msg.payload);
                 break;
+            case MSG_TYPE_UPLOAD:
+                server_upload(sockfd, sock_data, msg.payload, user_dir);
+                break;
             case MSG_TYPE_QUIT:
                 server_quit(sockfd, cur_user);
                 break;
@@ -158,11 +162,8 @@ void ftserve_process(int sockfd) {
             ftserve_mkdir(sockfd, arg);
         } else if (strcmp(cmd, "PWD ") == 0) {   // print working directory
             ftpServer_pwd(sockfd, sock_data);
-        } else if (strcmp(cmd, "RETR") == 0) {   // RETRIEVE: get file
-            server_download(sockfd, sock_data, arg);
         } else if (strcmp(cmd, "STOR") == 0) {   // STOR: send file
             printf("Receving ...\n");
-            recvFile(sockfd, sock_data, arg);
         }
         // Close data connection
         close(sock_data);

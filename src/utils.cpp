@@ -9,28 +9,18 @@
 
 void zip(const char *folder, const char *compress_path) {
     char command[1000];
-    sprintf(command, "cd %s && zip -r -y ../%s . > /dev/null 2>&1", folder, compress_path);
-
-    int result = system(command);
-
-    if (result == 0) {
-        printf("Folder zipped successfully.\n");
+    if (compress_path[0] == '/') {
+        sprintf(command, "cd %s && zip -r -y %s . > /dev/null 2>&1", folder, compress_path);
     } else {
-        printf("Error zipping folder.\n");
+        sprintf(command, "cd %s && zip -r -y ../%s . > /dev/null 2>&1", folder, compress_path);
     }
+    system(command);
 }
 
 void unzip(const char *compressed_path, const char *extract_path) {
     char command[1000];
-    sprintf(command, "unzip -o %s -d %s", compressed_path, extract_path);
-
-    int result = system(command);
-
-    if (result == 0) {
-        printf("Folder unzipped successfully.\n");
-    } else {
-        printf("Error unzipping folder.\n");
-    }
+    sprintf(command, "unzip -o %s -d %s > /dev/null 2>&1", compressed_path, extract_path);
+    system(command);
 }
 
 void print_centered(const char *text) {

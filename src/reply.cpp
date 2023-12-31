@@ -128,12 +128,13 @@ int cli_read_command(char *user_input, int size, struct command *cstruct, Messag
         strcpy(cstruct->code, "PWD ");
         memset(user_input, 0, SIZE);
         strcpy(user_input, cstruct->code);
-    } else if (strncmp(user_input, "get ", 4) == 0) {   // RETRIEVE
-        strcpy(cstruct->code, "RETR");
-        strcpy(cstruct->arg, user_input + 4);
-
-        memset(user_input, 0, SIZE);
-        sprintf(user_input, "%s %s", cstruct->code, cstruct->arg);
+    } else if (strncmp(user_input, "up ", 3) == 0 || strncmp(user_input, "upload ", 7) == 0) {
+        msg->type = MSG_TYPE_UPLOAD;
+        if (strncmp(user_input, "up ", 3) == 0) {
+            strcpy(msg->payload, user_input + 3);
+        } else {
+            strcpy(msg->payload, user_input + 7);
+        }
     } else if (strncmp(user_input, "dl ", 3) == 0 || strncmp(user_input, "download ", 9) == 0) {
         msg->type = MSG_TYPE_DOWNLOAD;
         if (strncmp(user_input, "dl ", 3) == 0) {

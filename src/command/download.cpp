@@ -15,7 +15,7 @@
 #include "message.h"
 #include "reply.h"
 
-int ftclient_get(int data_sock, int sock_control, char *arg) {
+int handle_download(int data_sock, int sock_control, char *arg) {
     Message msg;
     recv_message(sock_control, &msg);
     int is_file = msg.type == MSG_TYPE_DOWNLOAD_FILE ? 1 : 0;
@@ -55,43 +55,6 @@ int ftclient_get(int data_sock, int sock_control, char *arg) {
     printf("File downloaded to %s\n", path);
     fclose(fp);
     free(path);
-    return 0;
-}
-
-int recvFile(int sock_control, int sock_data, char *filename) {
-    char data[SIZE];
-    int size, stt = 0;
-    int isReceiveFile = read_reply(sock_control);
-
-    recv(sock_control, &stt, sizeof(stt), 0);
-    // printf("%d\n", stt);
-    if (stt == 550) {
-        printf("can't not open file!\n");
-        return -1;
-    }
-    if (strcmp(filename, ".shared") == 0) {
-        printf("User should not upload .shared!\n");
-        return -1;
-    }
-
-    char folderName[SIZE];
-    strcpy(folderName, filename);
-    if (!isReceiveFile)
-        strcat(filename, ".zip");
-    FILE *fd = fopen(filename, "w");
-
-    while ((size = recv(sock_data, data, SIZE, 0)) > 0) {
-        fwrite(data, 1, size, fd);
-    }
-
-    if (size < 0) {
-        perror("error\n");
-    }
-    fclose(fd);
-    if (!isReceiveFile) {
-        unzip(filename, folderName);
-        remove(filename);
-    }
     return 0;
 }
 

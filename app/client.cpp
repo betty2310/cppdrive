@@ -131,7 +131,7 @@ int main(int argc, char const *argv[]) {
                     break;
             }
         } else if (command.type == MSG_TYPE_DOWNLOAD) {
-            ftclient_get(data_sock, sockfd, command.payload);
+            handle_download(data_sock, sockfd, command.payload);
         } else if (strcmp(cmd.code, "FIND") == 0) {
             int repl = read_reply(sockfd);
             // File found
@@ -192,12 +192,8 @@ int main(int argc, char const *argv[]) {
             if (read_reply(sockfd) == 212) {
                 list(data_sock);   // ham nay in mess tu server
             }
-        } else if (strcmp(cmd.code, "RETR") == 0) {
-            ftclient_get(data_sock, sockfd, cmd.arg);
-        } else if (strcmp(cmd.code, "STOR") == 0) {
-            printf("Uploading ...\n");
-            upload(data_sock, cmd.arg, sockfd);
-            printf("xong\n");
+        } else if (command.type == MSG_TYPE_UPLOAD) {
+            handle_upload(data_sock, command.payload, sockfd);
         }
         close(data_sock);
 

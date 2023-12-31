@@ -1,8 +1,14 @@
 #ifndef __DOWNLOAD_H__
 #define __DOWNLOAD_H__
 
-int ftclient_get(int data_sock, int sock_control, char *arg);
-int recvFile(int sock_control, int sock_data, char *filename);
+/**
+ * Client download file or folder from server
+ * @param data_sock socket data
+ * @param sock_control socket control
+ * @param arg file or folder to download
+ * @return 0 on success, -1 on error
+ */
+int handle_download(int data_sock, int sock_control, char *arg);
 
 /**
  * Download file or folder from server
