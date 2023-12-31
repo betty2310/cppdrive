@@ -22,6 +22,22 @@ int list(int sock_data) {
     return 0;
 }
 
+// Custom comparison function
+int compare(const struct dirent **a, const struct dirent **b) {
+    struct stat sa, sb;
+    stat((*a)->d_name, &sa);
+    stat((*b)->d_name, &sb);
+
+    // Directory entries first
+    if (S_ISDIR(sa.st_mode) && !S_ISDIR(sb.st_mode))
+        return -1;
+    if (!S_ISDIR(sa.st_mode) && S_ISDIR(sb.st_mode))
+        return 1;
+
+    // Then sort alphabetically
+    return alphasort(a, b);
+}
+
 int server_list(int sockfd) {
     struct dirent **output = NULL;
     Message msg;
@@ -30,7 +46,7 @@ int server_list(int sockfd) {
     memset(payload, 0, SIZE);
 
     getcwd(curr_dir, sizeof(curr_dir));
-    int n = scandir(curr_dir, &output, NULL, alphasort);
+    int n = scandir(curr_dir, &output, NULL, compare);
     for (int i = 0; i < n; i++) {
         if (strcmp(output[i]->d_name, ".") != 0 && strcmp(output[i]->d_name, "..") != 0) {
             struct stat s;
