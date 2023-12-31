@@ -8,11 +8,13 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <sstream>
+#include <string>
 
 #include "common.h"
 #include "connect.h"
 
-int renameFile(const char *oldName, const char *newName) {
+int process_rename(const char *oldName, const char *newName) {
     if (oldName == NULL || newName == NULL) {
         fprintf(stderr, "Invalid input: oldName and newName cannot be NULL\n");
         return -1;
@@ -260,21 +262,19 @@ void processUserFolder(const char *userFolderPath, const char *excludedUsername,
     closedir(dir);
 }
 
-/**
- * Rename file and folder
- * over data connection
- */
-void ftserve_rename(int sock_control, char *arg) {
+void server_mv(int sock_control, char *arg) {
     char *from, *to;
     if (splitString(arg, &from, &to) == 0) {
-        if (renameFile(from, to) == 0)
-            send_response(sock_control, 251);
+        printf("from: %s\n", from);
+        printf("to: %s\n", to);
+        if (process_rename(from, to) == 0)
+            send_message(sock_control, create_status_message(MSG_TYPE_OK, NO));
         else
-            send_response(sock_control, 451);
+            send_message(sock_control, create_status_message(MSG_TYPE_ERROR, STATUS_MV_ERROR));
         free(from);
         free(to);
     } else
-        send_response(sock_control, 452);
+        send_message(sock_control, create_status_message(MSG_TYPE_ERROR, STATUS_MV_ERROR));
 }
 
 /**
@@ -292,15 +292,21 @@ void ftserve_delete(int sock_control, char *arg) {
         send_response(sock_control, 453);
 }
 
-/**
- * Make new directiory
- * over data connection
- */
-void ftserve_mkdir(int sock_control, char *arg) {
-    if (create_user_storage(arg) == 0)
-        send_response(sock_control, 254);
-    else
-        send_response(sock_control, 456);
+void server_mkdir(char *arg, char *user_dir) {
+    std::string paths(arg);
+    std::istringstream iss(paths);
+    std::string path;
+
+    getcwd(user_dir, sizeof(user_dir));
+    while (std::getline(iss, path, ' ')) {
+        if (!path.empty()) {
+            if (mkdir(path.c_str(), 0777) == -1) {
+                perror(("Error creating directory: " + path).c_str());
+            } else {
+                printf("Directory created: %s\n", path.c_str());
+            }
+        }
+    }
 }
 
 /**

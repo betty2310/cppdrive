@@ -57,6 +57,9 @@ std::string status_str(Status code) {
         case DIRECTORY_NOT_FOUND:
             return "cd: No such file or directory!";
             break;
+        case STATUS_MV_ERROR:
+            return "Usage: mv <old_path> <new_path>";
+            break;
         case NO:
             return "";
             break;

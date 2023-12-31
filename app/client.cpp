@@ -142,14 +142,18 @@ int main(int argc, char const *argv[]) {
                     handle_list(data_sock);   // ham nay in mess tu server
             } else if (repl == 441)
                 printf("441 File not found!\n");
-        } else if (strcmp(cmd.code, "RENM") == 0) {
-            int repl = read_reply(sockfd);
-            if (repl == 251)
-                printf("251 Rename successfully\n");
-            else if (repl == 451)
-                printf("451 Rename failure\n");
-            else if (repl == 452)
-                printf("452 Syntax error (renm <oldfilename> <newfilename>)\n");
+        } else if (command.type == MSG_TYPE_MV) {
+            Message response;
+            recv_message(sockfd, &response);
+            switch (response.type) {
+                case MSG_TYPE_OK:
+                    break;
+                case MSG_TYPE_ERROR:
+                    printf(ANSI_COLOR_RED "%s" ANSI_RESET "\n", response.payload);
+                    break;
+                default:
+                    break;
+            }
         } else if (strcmp(cmd.code, "DEL ") == 0) {
             int repl = read_reply(sockfd);
             if (repl == 252)
@@ -184,12 +188,7 @@ int main(int argc, char const *argv[]) {
                 printf("464 Must not share to yourself\n");
             else if (repl == 461)
                 printf("461 Syntax error (share <username> <filename>)\n");
-        } else if (strcmp(cmd.code, "MKDR") == 0) {
-            int repl = read_reply(sockfd);
-            if (repl == 254)
-                printf("254 Mkdir successfully\n");
-            else if (repl == 456)
-                printf("451 Mkdir failure\n");
+        } else if (command.type == MSG_TYPE_MKDIR) {
         } else if (command.type == MSG_TYPE_PWD) {
             const char *pwd = handle_pwd(cur_user, user_dir);
             printf("%s\n", pwd);

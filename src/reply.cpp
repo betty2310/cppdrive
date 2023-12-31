@@ -100,12 +100,9 @@ int cli_read_command(char *user_input, int size, struct command *cstruct, Messag
 
         memset(user_input, 0, SIZE);
         sprintf(user_input, "%s %s", cstruct->code, cstruct->arg);
-    } else if (strncmp(user_input, "mov ", 4) == 0) {
-        strcpy(cstruct->code, "MOV ");
-        strcpy(cstruct->arg, user_input + 4);
-
-        memset(user_input, 0, SIZE);
-        sprintf(user_input, "%s %s", cstruct->code, cstruct->arg);
+    } else if (strncmp(user_input, "mv ", 3) == 0) {
+        msg->type = MSG_TYPE_MV;
+        strcpy(msg->payload, user_input + 3);
     } else if (strncmp(user_input, "cpy ", 4) == 0) {
         strcpy(cstruct->code, "CPY ");
         strcpy(cstruct->arg, user_input + 4);
@@ -119,11 +116,8 @@ int cli_read_command(char *user_input, int size, struct command *cstruct, Messag
         memset(user_input, 0, SIZE);
         sprintf(user_input, "%s %s", cstruct->code, cstruct->arg);
     } else if (strncmp(user_input, "mkdir ", 6) == 0) {
-        strcpy(cstruct->code, "MKDR");
-        strcpy(cstruct->arg, user_input + 6);
-
-        memset(user_input, 0, SIZE);
-        sprintf(user_input, "%s %s", cstruct->code, cstruct->arg);
+        msg->type = MSG_TYPE_MKDIR;
+        strcpy(msg->payload, user_input + 6);
     } else if (strcmp(user_input, "pwd") == 0 || strcmp(user_input, "pwd ") == 0) {
         msg->type = MSG_TYPE_PWD;
     } else if (strncmp(user_input, "up ", 3) == 0 || strncmp(user_input, "upload ", 7) == 0) {

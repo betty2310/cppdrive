@@ -14,7 +14,7 @@ Message create_message(MessageType type, char* payload) {
 Message create_status_message(MessageType type, Status status) {
     Message mess;
     mess.type = type;
-    sprintf(mess.payload, "%d: %s", status, status_str(status).c_str());
+    sprintf(mess.payload, "%s", status_str(status).c_str());
     mess.length = strlen(mess.payload);
     return mess;
 }

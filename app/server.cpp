@@ -143,6 +143,12 @@ void ftserve_process(int sockfd) {
             case MSG_TYPE_UPLOAD:
                 server_upload(sockfd, sock_data, msg.payload, user_dir);
                 break;
+            case MSG_TYPE_MV:
+                server_mv(sockfd, msg.payload);
+                break;
+            case MSG_TYPE_MKDIR:
+                server_mkdir(msg.payload, user_dir);
+                break;
             case MSG_TYPE_QUIT:
                 server_quit(sockfd, cur_user);
                 break;
@@ -154,15 +160,12 @@ void ftserve_process(int sockfd) {
         } else if (strcmp(cmd, "SHRE") == 0) {   // share file
             ftserve_share(sockfd, arg, cur_user);
         } else if (strcmp(cmd, "RENM") == 0) {   // rename file and folder
-            ftserve_rename(sockfd, arg);
         } else if (strcmp(cmd, "DEL ") == 0) {   // rename file and folder
             ftserve_delete(sockfd, arg);
         } else if (strcmp(cmd, "MOV ") == 0) {   // rename file and folder
             ftserve_move(sockfd, arg);
         } else if (strcmp(cmd, "CPY ") == 0) {   // rename file and folder
             ftserve_copy(sockfd, arg);
-        } else if (strcmp(cmd, "MKDR") == 0) {   // RETRIEVE: get file
-            ftserve_mkdir(sockfd, arg);
         }
         // Close data connection
         close(sock_data);
