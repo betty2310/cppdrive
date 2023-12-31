@@ -6,40 +6,55 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <string>
 
+#include "color.h"
 #include "common.h"
 #include "connect.h"
+#include "log.h"
+#include "message.h"
 #include "reply.h"
 
 int ftclient_get(int data_sock, int sock_control, char *arg) {
-    char data[SIZE];
-    int size, stt = 0;
-    int isReceiveFile = read_reply(sock_control);
+    Message msg;
+    recv_message(sock_control, &msg);
+    int is_file = msg.type == MSG_TYPE_DOWNLOAD_FILE ? 1 : 0;
 
-    recv(sock_control, &stt, sizeof(stt), 0);
-    if (stt == 550) {
-        print_reply(stt);
+    recv_message(sock_control, &msg);
+    if (msg.type == MSG_TYPE_ERROR) {
+        printf(ANSI_COLOR_RED "%s\n" ANSI_RESET, msg.payload);
         return -1;
     }
 
-    char folderName[SIZE];
-    strcpy(folderName, arg);
-    if (!isReceiveFile)
+    if (!is_file)
         strcat(arg, ".zip");
-    FILE *fd = fopen(arg, "w");
 
-    while ((size = recv(data_sock, data, SIZE, 0)) > 0) fwrite(data, 1, size, fd);
+    char *home = getenv("HOME");
+    char *path = (char *) malloc(SIZE);
+    strcpy(path, home);
+    strcat(path, "/Downloads/");
+    strcat(path, arg);
 
-    if (size < 0)
-        perror("error\n");
-
-    fclose(fd);
-    int rep = read_reply(sock_control);
-    print_reply(rep);
-    if (!isReceiveFile) {
-        unzipFolder(arg, folderName);
-        remove(arg);
+    FILE *fp = fopen(path, "w");
+    if (!fp) {
+        perror("error opening file\n");
+        return -1;
     }
+
+    while (1) {
+        recv_message(data_sock, &msg);
+        if (msg.type == MSG_TYPE_DOWNLOAD) {
+            fwrite(msg.payload, 1, msg.length, fp);
+        } else if (msg.type == MSG_TYPE_ERROR) {
+            printf(ANSI_COLOR_RED "%s\n" ANSI_RESET, msg.payload);
+            break;
+        } else if (msg.type == MSG_TYPE_OK) {
+            break;
+        }
+    }
+    printf("File downloaded to %s\n", path);
+    fclose(fp);
+    free(path);
     return 0;
 }
 
@@ -74,58 +89,52 @@ int recvFile(int sock_control, int sock_data, char *filename) {
     }
     fclose(fd);
     if (!isReceiveFile) {
-        unzipFolder(filename, folderName);
+        unzip(filename, folderName);
         remove(filename);
     }
     return 0;
 }
 
-/**
- * Send file specified in filename over data connection, sending
- * control message over control connection
- * Handles case of null or invalid filename
- */
-void ftserve_retr(int sock_control, int sock_data, char *filename) {
-    FILE *fd = NULL;
-    char data[SIZE];
-    memset(data, 0, SIZE);
-    size_t num_read;
+void server_download(int sock_control, int sock_data, char *dir) {
+    char compress_folder[SIZE];
+    int fl = is_folder(dir);
+    if (is_folder(dir)) {
+        // need to compress folder before sending
+        strcpy(compress_folder, dir);
+        // use zip
+        strcat(compress_folder, ".zip");
+        zip(dir, compress_folder);
+        strcpy(dir, compress_folder);
 
-    char tempZip[SIZE];
-    int isDir = isDirectory(filename);
-
-    if (isDir) {
-        strcpy(tempZip, filename);
-        strcat(tempZip, ".zip");
-        zipFolder(filename, tempZip);
-        strcpy(filename, tempZip);
-        // tell client that we're sending a folder
-        send_response(sock_control, 0);
+        send_message(sock_control, create_status_message(MSG_TYPE_DOWNLOAD_FOLDER, NO));
     } else
-        send_response(sock_control, 1);
+        send_message(sock_control, create_status_message(MSG_TYPE_DOWNLOAD_FILE, NO));
 
-    fd = fopen(filename, "r");
+    FILE *fp = fopen(dir, "r");
 
-    if (!fd) {
-        // send error code (550 Requested action not taken)
-        send_response(sock_control, 550);
+    if (!fp) {
+        send_message(sock_control, create_status_message(MSG_TYPE_ERROR, FILE_NOT_FOUND));
+        server_log('e', "File not found");
     } else {
-        // send okay (150 File status okay)
-        send_response(sock_control, 150);
+        send_message(sock_control, create_status_message(MSG_TYPE_OK, NO));
+        server_log('i', "Sending file");
+        size_t byte_read;
 
+        Message data;
         do {
-            num_read = fread(data, 1, SIZE, fd);
-            // send block
-            if (send(sock_data, data, num_read, 0) < 0)
+            byte_read = fread(data.payload, 1, SIZE, fp);
+            data.type = MSG_TYPE_DOWNLOAD;
+            data.length = byte_read;
+            if (send_message(sock_data, data) < 0)
                 perror("error sending file\n");
+            memset(data.payload, 0, SIZE);
+        } while (byte_read > 0);
 
-        } while (num_read > 0);
-
-        // send message: 226: closing conn, file transfer successful
-        send_response(sock_control, 226);
-
-        fclose(fd);
-        if (isDir)
-            remove(filename);
+        send_message(sock_data, create_status_message(MSG_TYPE_OK, NO));
+        server_log('i', "File sent");
+        fclose(fp);
+        if (fl) {
+            remove(compress_folder);
+        }
     }
 }

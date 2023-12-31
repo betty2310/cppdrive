@@ -42,7 +42,7 @@ std::string status_str(Status code) {
             return "Logout SuccessFully!!";
             break;
         case FILE_NOT_FOUND:
-            return "User Not Found!!";
+            return "File Not Found!";
             break;
         case COMMAND_INVALID:
             return "Command was invalid!!";
@@ -56,6 +56,9 @@ std::string status_str(Status code) {
             break;
         case DIRECTORY_NOT_FOUND:
             return "cd: No such file or directory!";
+            break;
+        case NO:
+            return "";
             break;
         default:
             break;

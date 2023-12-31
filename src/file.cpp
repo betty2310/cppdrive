@@ -85,7 +85,7 @@ int deleteFile(const char *filename) {
             perror("Error deleting file");
             return -1;   // Error
         }
-    } else if (isDirectory(filename)) {
+    } else if (is_folder(filename)) {
         printf("folder\n");
         if (deleteFolder(filename) == 0) {
             printf("Folder %s deleted successfully.\n", filename);
@@ -316,7 +316,7 @@ void ftserve_move(int sock_control, char *arg) {
             else
                 send_response(sock_control, 454);
         }
-        if (isDirectory(from)) {
+        if (is_folder(from)) {
             strcat(to, "/");
             strcat(to, from);
             if (moveDirectory(from, to) == 0)
@@ -344,7 +344,7 @@ void ftserve_copy(int sock_control, char *arg) {
                 send_response(sock_control, 454);
             }
         }
-        if (isDirectory(from)) {
+        if (is_folder(from)) {
             strcat(to, "/");
             strcat(to, from);
             if (copyDirectory(from, to) == 0) {
@@ -380,7 +380,7 @@ void ftserve_share(int sock_control, char *arg, char *cur_user) {
         strcat(file_dir, "/");
         strcat(file_dir, dir);
         // 463 File not found
-        if (!isFile(file_dir) && !isDirectory(file_dir)) {
+        if (!isFile(file_dir) && !is_folder(file_dir)) {
             send_response(sock_control, 463);
             free(user);
             free(dir);

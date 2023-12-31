@@ -13,8 +13,12 @@ typedef enum {
     MSG_TYPE_LS,
     MSG_TYPE_CD,
     MSG_TYPE_QUIT,
+    MSG_TYPE_DOWNLOAD,
+    MSG_TYPE_UPLOAD,
     MSG_DATA_LS,
     MSG_DATA_CD,
+    MSG_TYPE_DOWNLOAD_FOLDER,
+    MSG_TYPE_DOWNLOAD_FILE,
 } MessageType;
 
 struct Message_ {

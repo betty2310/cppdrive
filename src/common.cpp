@@ -33,13 +33,12 @@ int isFile(const char *path) {
     return 0;   // Return 0 for error or if the path is not a regular file
 }
 
-// Function to check if a path corresponds to a directory (folder)
-int isDirectory(const char *path) {
+int is_folder(const char *path) {
     struct stat pathStat;
     if (stat(path, &pathStat) == 0) {
         return S_ISDIR(pathStat.st_mode);
     }
-    return 0;   // Return 0 for error or if the path is not a directory
+    return 0;
 }
 
 void trimstr(char *str, int n) {

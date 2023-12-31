@@ -17,12 +17,12 @@ void upload(int data_sock, char *filename, int sock_control) {
     int stt;
 
     char tempZip[SIZE];
-    int isDir = isDirectory(filename);
+    int isDir = is_folder(filename);
 
     if (isDir) {
         strcpy(tempZip, filename);
         strcat(tempZip, ".zip");
-        zipFolder(filename, tempZip);
+        zip(filename, tempZip);
         strcpy(filename, tempZip);
         // tell server that we're sending a folder
         send_response(sock_control, 0);

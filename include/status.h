@@ -4,6 +4,7 @@
 #include <string>
 
 typedef enum {
+    NO = 0,
     LOGIN_SUCCESS = 201,
     LOGIN_FAIL = 430,
     USER_NOT_FOUND = 101,

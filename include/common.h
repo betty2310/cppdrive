@@ -20,7 +20,13 @@ extern char root_dir[SIZE];
 
 void read_input(char *user_input, int size);
 int isFile(const char *path);
-int isDirectory(const char *path);
+
+/**
+ * Check if path is a folder
+ * @param path path to check
+ * @return 1 if path is a folder, 0 if not
+ */
+int is_folder(const char *path);
 
 /**
  * Trim whitespace and line ending

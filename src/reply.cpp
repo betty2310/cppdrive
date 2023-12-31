@@ -70,7 +70,7 @@ int ftclient_send_cmd(struct command *cmd, int sock_control) {
 /**
  * Parse command in cstruct
  */
-int ftclient_read_command(char *user_input, int size, struct command *cstruct, Message *msg) {
+int cli_read_command(char *user_input, int size, struct command *cstruct, Message *msg) {
     memset(cstruct->code, 0, sizeof(cstruct->code));
     memset(cstruct->arg, 0, sizeof(cstruct->arg));
 
@@ -79,17 +79,9 @@ int ftclient_read_command(char *user_input, int size, struct command *cstruct, M
 
     if (strcmp(user_input, "ls ") == 0 || strcmp(user_input, "ls") == 0) {
         msg->type = MSG_TYPE_LS;
-        strcpy(cstruct->code, "LIST");
-        memset(user_input, 0, SIZE);
-        strcpy(user_input, cstruct->code);
     } else if (strncmp(user_input, "cd ", 3) == 0) {
         msg->type = MSG_TYPE_CD;
         strcpy(msg->payload, user_input + 3);
-        strcpy(cstruct->code, "CWD ");
-        strcpy(cstruct->arg, user_input + 3);
-
-        memset(user_input, 0, SIZE);
-        sprintf(user_input, "%s %s", cstruct->code, cstruct->arg);
     } else if (strncmp(user_input, "find ", 5) == 0) {
         strcpy(cstruct->code, "FIND");
         strcpy(cstruct->arg, user_input + 5);
@@ -142,17 +134,18 @@ int ftclient_read_command(char *user_input, int size, struct command *cstruct, M
 
         memset(user_input, 0, SIZE);
         sprintf(user_input, "%s %s", cstruct->code, cstruct->arg);
-    } else if (strncmp(user_input, "put ", 4) == 0) {
-        strcpy(cstruct->code, "STOR");   // STORE
-        strcpy(cstruct->arg, user_input + 4);
-
-        memset(user_input, 0, SIZE);
-        sprintf(user_input, "%s %s", cstruct->code, cstruct->arg);
+    } else if (strncmp(user_input, "dl ", 3) == 0 || strncmp(user_input, "download ", 9) == 0) {
+        msg->type = MSG_TYPE_DOWNLOAD;
+        if (strncmp(user_input, "dl ", 3) == 0) {
+            strcpy(msg->payload, user_input + 3);
+        } else {
+            strcpy(msg->payload, user_input + 9);
+        }
     } else if (strcmp(user_input, "quit") == 0) {
         msg->type = MSG_TYPE_QUIT;
     } else if (strcmp(user_input, "clear") == 0) {
         system("clear");
-    } else {   // invalid
+    } else {
         return -1;
     }
 

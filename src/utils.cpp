@@ -7,9 +7,9 @@
 #include <termios.h>
 #include <unistd.h>
 
-void zipFolder(const char *folderPath, const char *zipPath) {
+void zip(const char *folder, const char *compress_path) {
     char command[1000];
-    sprintf(command, "cd %s && zip -r -y ../%s .", folderPath, zipPath);
+    sprintf(command, "cd %s && zip -r -y ../%s . > /dev/null 2>&1", folder, compress_path);
 
     int result = system(command);
 
@@ -20,10 +20,9 @@ void zipFolder(const char *folderPath, const char *zipPath) {
     }
 }
 
-// Function to unzip a folder
-void unzipFolder(const char *zipPath, const char *extractPath) {
+void unzip(const char *compressed_path, const char *extract_path) {
     char command[1000];
-    sprintf(command, "unzip -o %s -d %s", zipPath, extractPath);
+    sprintf(command, "unzip -o %s -d %s", compressed_path, extract_path);
 
     int result = system(command);
 

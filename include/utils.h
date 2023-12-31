@@ -10,9 +10,6 @@
 #define UP_ARROW   "\033[A"
 #define DOWN_ARROW "\033[B"
 
-void zipFolder(const char *folderPath, const char *zipPath);
-void unzipFolder(const char *zipPath, const char *extractPath);
-
 /**
  * print a string centered on the screen
  @param text the string to print
@@ -33,5 +30,19 @@ int process_menu(const char *menu_items[], int num_items);
  * @return prompt string
  */
 char *handle_prompt(char *cur_user, char *user_dir);
+
+/**
+ * compress a folder
+ * @param folder path to folder
+ * @param compress_path path to compressed file
+ */
+void zip(const char *folder, const char *compress_path);
+
+/**
+ * decompress a folder
+ * @param compressed_path path to compressed folder
+ * @param extract_path path to extract folder
+ */
+void unzip(const char *compressed_path, const char *extract_path);
 
 #endif   // !__UTILS

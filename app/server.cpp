@@ -133,18 +133,16 @@ void ftserve_process(int sockfd) {
             case MSG_TYPE_CD:
                 server_cd(sockfd, msg.payload, user_dir);
                 break;
+            case MSG_TYPE_DOWNLOAD:
+                server_download(sockfd, sock_data, msg.payload);
+                break;
             case MSG_TYPE_QUIT:
                 server_quit(sockfd, cur_user);
                 break;
             default:
                 break;
         }
-        // Execute command
-        if (strcmp(cmd, "LIST") == 0) {   // Do list
-            server_list(sock_data);
-        } else if (strcmp(cmd, "CWD ") == 0) {   // change directory
-            server_cd(sockfd, arg, user_dir);
-        } else if (strcmp(cmd, "FIND") == 0) {   // find file
+        if (strcmp(cmd, "FIND") == 0) {   // find file
             ftserve_find(sockfd, sock_data, arg);
         } else if (strcmp(cmd, "SHRE") == 0) {   // share file
             ftserve_share(sockfd, arg, cur_user);
@@ -161,7 +159,7 @@ void ftserve_process(int sockfd) {
         } else if (strcmp(cmd, "PWD ") == 0) {   // print working directory
             ftpServer_pwd(sockfd, sock_data);
         } else if (strcmp(cmd, "RETR") == 0) {   // RETRIEVE: get file
-            ftserve_retr(sockfd, sock_data, arg);
+            server_download(sockfd, sock_data, arg);
         } else if (strcmp(cmd, "STOR") == 0) {   // STOR: send file
             printf("Receving ...\n");
             recvFile(sockfd, sock_data, arg);

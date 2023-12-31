@@ -93,8 +93,8 @@ int main(int argc, char const *argv[]) {
         printf(ANSI_COLOR_GREEN "%s" ANSI_RESET, prompt);
         fflush(stdout);
         Message command;
-        int cmd_stt = ftclient_read_command(user_input, sizeof(user_input), &cmd, &command);
-        if (cmd_stt == -1) {
+        int fl = cli_read_command(user_input, sizeof(user_input), &cmd, &command);
+        if (fl == -1) {
             printf("Invalid command\n");
             // next loop
             continue;
@@ -130,6 +130,8 @@ int main(int argc, char const *argv[]) {
                 default:
                     break;
             }
+        } else if (command.type == MSG_TYPE_DOWNLOAD) {
+            ftclient_get(data_sock, sockfd, command.payload);
         } else if (strcmp(cmd.code, "FIND") == 0) {
             int repl = read_reply(sockfd);
             // File found
