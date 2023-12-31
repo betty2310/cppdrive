@@ -7,14 +7,6 @@
 #include <termios.h>
 #include <unistd.h>
 
-#define UP_ARROW   "\033[A"
-#define DOWN_ARROW "\033[B"
-
-#define ANSI_COLOR_BLUE   "\033[34m"
-#define ANSI_COLOR_YELLOW "\033[33m"
-#define ANSI_BOLD         "\033[1m"
-#define ANSI_RESET        "\033[0m"
-
 void zipFolder(const char *folderPath, const char *zipPath) {
     char command[1000];
     sprintf(command, "cd %s && zip -r -y ../%s .", folderPath, zipPath);

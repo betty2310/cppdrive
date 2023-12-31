@@ -86,7 +86,6 @@ void ftserve_process(int sockfd) {
                 status = LOGIN_SUCCESS;
                 response = create_status_message(MSG_TYPE_OK, status);
                 send_message(sockfd, response);
-                server_log('i', "Login success");
             } else {
                 status = LOGIN_FAIL;
                 response = create_status_message(MSG_TYPE_ERROR, status);
@@ -107,50 +106,61 @@ void ftserve_process(int sockfd) {
             break;
     }
 
-    while (1) {
-        // Wait for command
-        cur_user = extractUsername(user_dir);
-        // TODO: handle relogin case
-        int rc = ftserve_recv_cmd(sockfd, cmd, arg, cur_user);
+    cur_user = get_username(user_dir);
+    char *log = (char *) malloc(sizeof(char) * 100);
+    sprintf(log, "User %s logged in", cur_user);
+    server_log('i', log);
 
-        if ((rc < 0) || (rc == 221)) {
+    while (1) {
+        // TODO: handle relogin case
+        Message msg;
+        int st = recv_message(sockfd, &msg);
+
+        if (st < 0) {
             break;
         }
-        if (rc == 200) {
-            // Open data connection with client
-            if ((sock_data = ftserve_start_data_conn(sockfd)) < 0) {
-                close(sockfd);
-                exit(1);
-            }
-            // Execute command
-            if (strcmp(cmd, "LIST") == 0) {   // Do list
-                ftserve_list(sock_data);
-            } else if (strcmp(cmd, "CWD ") == 0) {   // change directory
-                ftpServer_cwd(sockfd, arg, user_dir);
-            } else if (strcmp(cmd, "FIND") == 0) {   // find file
-                ftserve_find(sockfd, sock_data, arg);
-            } else if (strcmp(cmd, "SHRE") == 0) {   // share file
-                ftserve_share(sockfd, arg, cur_user);
-            } else if (strcmp(cmd, "RENM") == 0) {   // rename file and folder
-                ftserve_rename(sockfd, arg);
-            } else if (strcmp(cmd, "DEL ") == 0) {   // rename file and folder
-                ftserve_delete(sockfd, arg);
-            } else if (strcmp(cmd, "MOV ") == 0) {   // rename file and folder
-                ftserve_move(sockfd, arg);
-            } else if (strcmp(cmd, "CPY ") == 0) {   // rename file and folder
-                ftserve_copy(sockfd, arg);
-            } else if (strcmp(cmd, "MKDR") == 0) {   // RETRIEVE: get file
-                ftserve_mkdir(sockfd, arg);
-            } else if (strcmp(cmd, "PWD ") == 0) {   // print working directory
-                ftpServer_pwd(sockfd, sock_data);
-            } else if (strcmp(cmd, "RETR") == 0) {   // RETRIEVE: get file
-                ftserve_retr(sockfd, sock_data, arg);
-            } else if (strcmp(cmd, "STOR") == 0) {   // STOR: send file
-                printf("Receving ...\n");
-                recvFile(sockfd, sock_data, arg);
-            }
-            // Close data connection
-            close(sock_data);
+        // Open data connection with client
+        if ((sock_data = ftserve_start_data_conn(sockfd)) < 0) {
+            close(sockfd);
+            exit(1);
         }
+
+        switch (msg.type) {
+            case MSG_TYPE_LS:
+                server_list(sock_data);
+                break;
+
+            default:
+                break;
+        }
+        // Execute command
+        if (strcmp(cmd, "LIST") == 0) {   // Do list
+            server_list(sock_data);
+        } else if (strcmp(cmd, "CWD ") == 0) {   // change directory
+            ftpServer_cwd(sockfd, arg, user_dir);
+        } else if (strcmp(cmd, "FIND") == 0) {   // find file
+            ftserve_find(sockfd, sock_data, arg);
+        } else if (strcmp(cmd, "SHRE") == 0) {   // share file
+            ftserve_share(sockfd, arg, cur_user);
+        } else if (strcmp(cmd, "RENM") == 0) {   // rename file and folder
+            ftserve_rename(sockfd, arg);
+        } else if (strcmp(cmd, "DEL ") == 0) {   // rename file and folder
+            ftserve_delete(sockfd, arg);
+        } else if (strcmp(cmd, "MOV ") == 0) {   // rename file and folder
+            ftserve_move(sockfd, arg);
+        } else if (strcmp(cmd, "CPY ") == 0) {   // rename file and folder
+            ftserve_copy(sockfd, arg);
+        } else if (strcmp(cmd, "MKDR") == 0) {   // RETRIEVE: get file
+            ftserve_mkdir(sockfd, arg);
+        } else if (strcmp(cmd, "PWD ") == 0) {   // print working directory
+            ftpServer_pwd(sockfd, sock_data);
+        } else if (strcmp(cmd, "RETR") == 0) {   // RETRIEVE: get file
+            ftserve_retr(sockfd, sock_data, arg);
+        } else if (strcmp(cmd, "STOR") == 0) {   // STOR: send file
+            printf("Receving ...\n");
+            recvFile(sockfd, sock_data, arg);
+        }
+        // Close data connection
+        close(sock_data);
     }
 }

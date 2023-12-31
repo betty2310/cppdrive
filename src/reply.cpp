@@ -70,34 +70,15 @@ int ftclient_send_cmd(struct command *cmd, int sock_control) {
 /**
  * Parse command in cstruct
  */
-int ftclient_read_command(char *user_input, int size, struct command *cstruct) {
+int ftclient_read_command(char *user_input, int size, struct command *cstruct, Message *msg) {
     memset(cstruct->code, 0, sizeof(cstruct->code));
     memset(cstruct->arg, 0, sizeof(cstruct->arg));
-
-    printf("ftp@cppdrive ");   // prompt for input
-    fflush(stdout);
 
     // wait for user to enter a command
     read_input(user_input, size);
 
-    // user_input:
-    // chang directory on client side
-    if (strcmp(user_input, "!ls") == 0 || strcmp(user_input, "!ls ") == 0) {
-        system("ls");   // client side
-        return 1;
-    } else if (strcmp(user_input, "!pwd") == 0 || strcmp(user_input, "!pwd ") == 0) {
-        system("pwd");   // client side
-        return 1;
-    } else if (strncmp(user_input, "!cd ", 4) == 0) {
-        if (chdir(user_input + 4) == 0) {
-            printf("Directory successfully changed\n");
-        } else {
-            perror("Error change directory");
-        }
-        return 1;
-    }
-    // change directory on server side
-    else if (strcmp(user_input, "ls ") == 0 || strcmp(user_input, "ls") == 0) {
+    if (strcmp(user_input, "ls ") == 0 || strcmp(user_input, "ls") == 0) {
+        msg->type = MSG_TYPE_LS;
         strcpy(cstruct->code, "LIST");
         memset(user_input, 0, SIZE);
         strcpy(user_input, cstruct->code);
@@ -153,9 +134,7 @@ int ftclient_read_command(char *user_input, int size, struct command *cstruct) {
         strcpy(cstruct->code, "PWD ");
         memset(user_input, 0, SIZE);
         strcpy(user_input, cstruct->code);
-    }
-    // upload and download file
-    else if (strncmp(user_input, "get ", 4) == 0) {   // RETRIEVE
+    } else if (strncmp(user_input, "get ", 4) == 0) {   // RETRIEVE
         strcpy(cstruct->code, "RETR");
         strcpy(cstruct->arg, user_input + 4);
 
@@ -167,9 +146,7 @@ int ftclient_read_command(char *user_input, int size, struct command *cstruct) {
 
         memset(user_input, 0, SIZE);
         sprintf(user_input, "%s %s", cstruct->code, cstruct->arg);
-    }
-    // quit
-    else if (strcmp(user_input, "quit") == 0) {
+    } else if (strcmp(user_input, "quit") == 0) {
         strcpy(cstruct->code, "QUIT");
         memset(user_input, 0, SIZE);
         strcpy(user_input, cstruct->code);

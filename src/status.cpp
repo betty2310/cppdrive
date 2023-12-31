@@ -26,7 +26,7 @@ std::string status_str(Status code) {
             break;
         // error message
         case LOGIN_FAIL:
-            return "Wrong username or password!";
+            return "Incorrect username or password, or your account is locked!";
             break;
         case USER_IS_ONLINE:
             return "The User Was In Online!!";

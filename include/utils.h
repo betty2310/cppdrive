@@ -1,6 +1,11 @@
 #ifndef __UTILS_H__
 #define __UTILS_H__
 
+#include "color.h"
+
+#define UP_ARROW   "\033[A"
+#define DOWN_ARROW "\033[B"
+
 void zipFolder(const char *folderPath, const char *zipPath);
 void unzipFolder(const char *zipPath, const char *extractPath);
 

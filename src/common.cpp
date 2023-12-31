@@ -105,7 +105,7 @@ int splitString(char *input, char **str1, char **str2) {
     return 0;   // Success
 }
 
-void toggleUserLock(const char *username, int lockStatus) {
+void toggle_lock(const char *username, int lockStatus) {
     // Open the .auth file in read mode
     FILE *file = fopen(AUTH_FILE, "r");
 
@@ -166,8 +166,7 @@ int create_user_storage(const char *path) {
     }
 }
 
-// Function to extract the username from userpath
-char *extractUsername(char *path) {
+char *get_username(char *path) {
     char *lastSlash = strrchr(path, '/');
 
     if (lastSlash != NULL) {

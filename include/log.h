@@ -1,8 +1,8 @@
 #ifndef __LOG_H__
 #define __LOG_H__
 
-#define LOG_FILE        "log.txt"
-#define SERVER_LOG_FILE "server_log.txt"
+#define LOG_FILE        "/Users/betty/Developer/cppdrive/build/log.txt"
+#define SERVER_LOG_FILE "/Users/betty/Developer/cppdrive/build/server_log.txt"
 
 /**
  * Log message to file

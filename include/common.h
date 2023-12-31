@@ -36,7 +36,7 @@ void trimstr(char *str, int n);
 int splitString(char *input, char **str1, char **str2);
 
 // Function to lock or unlock a user in the .auth file (0 for unlock, 1 for lock)
-void toggleUserLock(const char *username, int lockStatus);
+void toggle_lock(const char *username, int lockStatus);
 
 /**
  * create user storage
@@ -45,6 +45,10 @@ void toggleUserLock(const char *username, int lockStatus);
  */
 int create_user_storage(const char *path);
 
-// Function to extract the username from userpath
-char *extractUsername(char *path);
+/**
+ * get username from path
+ * @param path path to user storage
+ * @return char pointer to username
+ */
+char *get_username(char *path);
 #endif   // !__COMMON_H__

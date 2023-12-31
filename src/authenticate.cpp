@@ -242,11 +242,12 @@ int ftserve_check_user(char *user, char *pass, char *user_dir) {
         char outputBuffer[65];
         sha256(pass, outputBuffer);
 
+        // printf("%d %d %d\n", strcmp(user, username), strcmp(outputBuffer, password), isLock);
         if ((strcmp(user, username) == 0) &&
             (strcmp(outputBuffer, password) == 0 && (isLock == 0))) {
             auth = 1;
             // Lock user to prevent concurrent login
-            toggleUserLock(user, 1);
+            toggle_lock(user, 1);
 
             // Change dir to user root dir
             strcat(user_dir, username);
@@ -319,10 +320,7 @@ int server_login(Message msg, char *user_dir) {
     strcpy(user, strtok(buf, " "));
     strcpy(pass, strtok(NULL, " "));
 
-    char *u;
-    u = user;
-
-    return (ftserve_check_user(u, pass, user_dir));
+    return (ftserve_check_user(user, pass, user_dir));
 }
 
 int server_register(int sock_control, Message msg) {

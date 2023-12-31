@@ -38,7 +38,7 @@ set(SOURCES          # All .cpp files in src/
     src/authenticate.cpp
     src/connect.cpp
     src/download.cpp
-    src/ls.cpp
+    src/command/ls.cpp
     src/reply.cpp
     src/upload.cpp
     src/utils.cpp

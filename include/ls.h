@@ -1,7 +1,18 @@
 #ifndef __LS_H__
 #define __LS_H__
 
-int ftclient_list(int sock_data);
-int ftserve_list(int sock_data);
+/**
+ * @brief List files and directories in current working directory
+ * @param sockfd Socket to receive data
+ * @return 0 if success, -1 if error
+ */
+int list(int sockfd);
 
-#endif   // !
+/**
+ * @brief Server handle list files and directories in current working directory
+ * @param sockfd Socket to send data
+ * @return 0 if success, -1 if error
+ */
+int server_list(int sockfd);
+
+#endif   // !__LS_H__

@@ -212,7 +212,7 @@ int ftserve_start_data_conn(int sock_control) {
  * send response
  * Returns response code
  */
-int ftserve_recv_cmd(int sock_control, char *cmd, char *arg, char *cur_user) {
+int ftserve_recv_cmd(int sock_control, char *cmd, char *arg, char *cur_user, Message *msg) {
     int rc = 200;
     char user_input[SIZE];
 
@@ -221,17 +221,21 @@ int ftserve_recv_cmd(int sock_control, char *cmd, char *arg, char *cur_user) {
     memset(arg, 0, SIZE);
 
     // Wait to receive command
-    if ((recv_data(sock_control, user_input, sizeof(user_input))) == -1) {
-        perror("recv error\n");
+    if ((recv_message(sock_control, msg)) == -1) {
+        perror("Error recevied message!\n");
         return -1;
     }
 
     strncpy(cmd, user_input, 4);
     strcpy(arg, user_input + 5);
 
+    if (msg->type == MSG_TYPE_LS) {
+        rc = 200;
+    }
+
     if (strcmp(cmd, "QUIT") == 0) {
         chdir(root_dir);
-        toggleUserLock(cur_user, 0);
+        toggle_lock(cur_user, 0);
         rc = 221;
     } else if ((strcmp(cmd, "USER") == 0) || (strcmp(cmd, "PASS") == 0) ||
                (strcmp(cmd, "LIST") == 0) || (strcmp(cmd, "RETR") == 0) ||
