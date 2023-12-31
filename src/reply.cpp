@@ -125,9 +125,7 @@ int cli_read_command(char *user_input, int size, struct command *cstruct, Messag
         memset(user_input, 0, SIZE);
         sprintf(user_input, "%s %s", cstruct->code, cstruct->arg);
     } else if (strcmp(user_input, "pwd") == 0 || strcmp(user_input, "pwd ") == 0) {
-        strcpy(cstruct->code, "PWD ");
-        memset(user_input, 0, SIZE);
-        strcpy(user_input, cstruct->code);
+        msg->type = MSG_TYPE_PWD;
     } else if (strncmp(user_input, "up ", 3) == 0 || strncmp(user_input, "upload ", 7) == 0) {
         msg->type = MSG_TYPE_UPLOAD;
         if (strncmp(user_input, "up ", 3) == 0) {

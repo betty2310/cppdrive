@@ -1,25 +1,47 @@
 #include "pwd.h"
 
-#include <sys/socket.h>
-#include <unistd.h>
-
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <sstream>
+#include <string>
+#include <vector>
 
 #include "common.h"
 #include "connect.h"
 
-void ftpServer_pwd(int sock_control, int sock_data) {
-    char curr_dir[SIZE - 2], msgToClient[SIZE];
-    memset(curr_dir, 0, SIZE - 2);
-    memset(msgToClient, 0, SIZE);
+const char *handle_pwd(char *cur_user, char *user_dir) {
+    std::vector<std::string> tokens;
+    std::string token;
+    std::string user_dir_str(user_dir);
+    std::istringstream tokenStream(user_dir_str);
 
-    getcwd(curr_dir, sizeof(curr_dir));
-    sprintf(msgToClient, "%s\n", curr_dir);
-    if (send(sock_data, msgToClient, strlen(msgToClient), 0) < 0) {
-        perror("error");
-        send_response(sock_control, 550);
+    while (getline(tokenStream, token, '/')) {
+        if (!token.empty()) {
+            tokens.push_back(token);
+        }
     }
-    send_response(sock_control, 212);
+
+    // Find the index of cur_user in the tokens
+    size_t user_index = std::string::npos;
+    for (size_t i = 0; i < tokens.size(); ++i) {
+        if (tokens[i] == cur_user) {
+            user_index = i;
+            break;
+        }
+    }
+
+    char *prompt = (char *) malloc(sizeof(char) * 100);
+    if (user_index == std::string::npos) {
+        sprintf(prompt, "/%s", cur_user);
+        return prompt;
+    }
+
+    // Construct the path from the user's directory onwards
+    std::string path = "~/";
+    for (size_t i = user_index + 1; i < tokens.size(); ++i) {
+        path += tokens[i] + "/";
+    }
+
+    return path.c_str();
 }

@@ -40,7 +40,7 @@ set(SOURCES          # All .cpp files in src/
     src/command/download.cpp
     src/command/ls.cpp
     src/reply.cpp
-    src/upload.cpp
+    src/command/upload.cpp
     src/utils.cpp
     src/file.cpp
     src/find.cpp

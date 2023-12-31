@@ -22,6 +22,7 @@
 #include "download.h"
 #include "log.h"
 #include "ls.h"
+#include "pwd.h"
 #include "reply.h"
 #include "upload.h"
 #include "utils.h"
@@ -116,7 +117,7 @@ int main(int argc, char const *argv[]) {
             printf("Goodbye.\n");
             break;
         } else if (command.type == MSG_TYPE_LS) {
-            list(data_sock);
+            handle_list(data_sock);
         } else if (command.type == MSG_TYPE_CD) {
             Message response;
             recv_message(sockfd, &response);
@@ -137,7 +138,8 @@ int main(int argc, char const *argv[]) {
             // File found
             if (repl == 241) {
                 int nums = read_reply(sockfd);
-                for (int i = 0; i < nums; ++i) list(data_sock);   // ham nay in mess tu server
+                for (int i = 0; i < nums; ++i)
+                    handle_list(data_sock);   // ham nay in mess tu server
             } else if (repl == 441)
                 printf("441 File not found!\n");
         } else if (strcmp(cmd.code, "RENM") == 0) {
@@ -188,10 +190,10 @@ int main(int argc, char const *argv[]) {
                 printf("254 Mkdir successfully\n");
             else if (repl == 456)
                 printf("451 Mkdir failure\n");
-        } else if (strcmp(cmd.code, "PWD ") == 0) {
-            if (read_reply(sockfd) == 212) {
-                list(data_sock);   // ham nay in mess tu server
-            }
+        } else if (command.type == MSG_TYPE_PWD) {
+            const char *pwd = handle_pwd(cur_user, user_dir);
+            printf("%s\n", pwd);
+
         } else if (command.type == MSG_TYPE_UPLOAD) {
             handle_upload(data_sock, command.payload, sockfd);
         }

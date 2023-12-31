@@ -134,6 +134,9 @@ void ftserve_process(int sockfd) {
             case MSG_TYPE_CD:
                 server_cd(sockfd, msg.payload, user_dir);
                 break;
+            case MSG_TYPE_PWD:
+                // handle on client side
+                break;
             case MSG_TYPE_DOWNLOAD:
                 server_download(sockfd, sock_data, msg.payload);
                 break;
@@ -160,10 +163,6 @@ void ftserve_process(int sockfd) {
             ftserve_copy(sockfd, arg);
         } else if (strcmp(cmd, "MKDR") == 0) {   // RETRIEVE: get file
             ftserve_mkdir(sockfd, arg);
-        } else if (strcmp(cmd, "PWD ") == 0) {   // print working directory
-            ftpServer_pwd(sockfd, sock_data);
-        } else if (strcmp(cmd, "STOR") == 0) {   // STOR: send file
-            printf("Receving ...\n");
         }
         // Close data connection
         close(sock_data);

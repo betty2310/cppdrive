@@ -13,7 +13,7 @@
 #include "common.h"
 #include "connect.h"
 
-int list(int sock_data) {
+int handle_list(int sock_data) {
     Message msg;
     recv_message(sock_data, &msg);
     if (msg.type == MSG_DATA_LS) {

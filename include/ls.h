@@ -6,7 +6,7 @@
  * @param sockfd Socket to receive data
  * @return 0 if success, -1 if error
  */
-int list(int sockfd);
+int handle_list(int sockfd);
 
 /**
  * @brief Server handle list files and directories in current working directory
