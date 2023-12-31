@@ -106,13 +106,16 @@ int main(int argc, char const *argv[]) {
         }
 
         // open data connection
-        if ((data_sock = ftclient_open_conn(sockfd)) < 0) {
+        if ((data_sock = client_start_conn(sockfd)) < 0) {
             perror("Error opening socket for data connection");
             exit(1);
         }
 
         // execute command
-        if (command.type == MSG_TYPE_LS) {
+        if (command.type == MSG_TYPE_QUIT) {
+            printf("Goodbye.\n");
+            break;
+        } else if (command.type == MSG_TYPE_LS) {
             list(data_sock);
         } else if (command.type == MSG_TYPE_CD) {
             Message response;

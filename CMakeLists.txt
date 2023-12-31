@@ -44,7 +44,8 @@ set(SOURCES          # All .cpp files in src/
     src/utils.cpp
     src/file.cpp
     src/find.cpp
-    src/cwd.cpp
+    src/command/cd.cpp
+    src/command/quit.cpp
     src/pwd.cpp
     src/validate.cpp
     src/status.cpp

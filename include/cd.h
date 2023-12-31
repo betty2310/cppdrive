@@ -1,5 +1,5 @@
-#ifndef __CWD_H__
-#define __CWD_H__
+#ifndef __CD_H__
+#define __CD_H__
 
 // Function to check if a directory is a subdirectory of the base directory
 int is_subdir(const char *baseDir, const char *dir);

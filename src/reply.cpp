@@ -149,9 +149,9 @@ int ftclient_read_command(char *user_input, int size, struct command *cstruct, M
         memset(user_input, 0, SIZE);
         sprintf(user_input, "%s %s", cstruct->code, cstruct->arg);
     } else if (strcmp(user_input, "quit") == 0) {
-        strcpy(cstruct->code, "QUIT");
-        memset(user_input, 0, SIZE);
-        strcpy(user_input, cstruct->code);
+        msg->type = MSG_TYPE_QUIT;
+    } else if (strcmp(user_input, "clear") == 0) {
+        system("clear");
     } else {   // invalid
         return -1;
     }

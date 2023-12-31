@@ -111,7 +111,7 @@ int socket_accept(int sock_listen) {
 /**
  * Open data connection
  */
-int ftclient_open_conn(int sock_con) {
+int client_start_conn(int sock_con) {
     int sock_listen = socket_create(DEFAULT_PORT);
 
     // send an ACK on control conn
@@ -182,7 +182,7 @@ int socket_connect(int port, char *host) {
  * Returns: socket for data connection
  * or -1 on error
  */
-int ftserve_start_data_conn(int sock_control) {
+int server_start_conn(int sock_control) {
     char buf[1024];
     int wait, sock_data;
 

@@ -17,9 +17,9 @@
 #include <unistd.h>
 
 #include "authenticate.h"
+#include "cd.h"
 #include "common.h"
 #include "connect.h"
-#include "cwd.h"
 #include "download.h"
 #include "file.h"
 #include "find.h"
@@ -27,6 +27,7 @@
 #include "ls.h"
 #include "message.h"
 #include "pwd.h"
+#include "quit.h"
 #include "status.h"
 #include "utils.h"
 
@@ -120,7 +121,7 @@ void ftserve_process(int sockfd) {
             break;
         }
         // Open data connection with client
-        if ((sock_data = ftserve_start_data_conn(sockfd)) < 0) {
+        if ((sock_data = server_start_conn(sockfd)) < 0) {
             close(sockfd);
             exit(1);
         }
@@ -131,6 +132,9 @@ void ftserve_process(int sockfd) {
                 break;
             case MSG_TYPE_CD:
                 server_cd(sockfd, msg.payload, user_dir);
+                break;
+            case MSG_TYPE_QUIT:
+                server_quit(sockfd, cur_user);
                 break;
             default:
                 break;
