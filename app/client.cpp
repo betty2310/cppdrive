@@ -10,13 +10,10 @@
 
 #include "authenticate.h"
 #include "color.h"
+#include "command.h"
 #include "common.h"
 #include "connect.h"
-#include "download.h"
 #include "log.h"
-#include "ls.h"
-#include "pwd.h"
-#include "upload.h"
 #include "utils.h"
 #include "validate.h"
 

@@ -1,5 +1,3 @@
-#include "pwd.h"
-
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -7,6 +5,7 @@
 #include <string>
 #include <vector>
 
+#include "command.h"
 #include "common.h"
 #include "connect.h"
 

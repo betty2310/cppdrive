@@ -10,6 +10,25 @@
 #define UP_ARROW   "\033[A"
 #define DOWN_ARROW "\033[B"
 
+void read_input(char *user_input, int size);
+
+/**
+ * get username from path
+ * @param path path to user storage
+ * @return char pointer to username
+ */
+char *get_username(char *path);
+
+/**
+ * create user storage
+ * @param path path to user storage
+ * @return 0 if success, -1 if error
+ */
+int create_user_storage(const char *path);
+
+// Function to lock or unlock a user in the .auth file (0 for unlock, 1 for lock)
+void toggle_lock(const char *username, int lockStatus);
+
 /**
  * print a string centered on the screen
  @param text the string to print
@@ -30,6 +49,12 @@ int process_menu(const char *menu_items[], int num_items);
  * @return prompt string
  */
 char *handle_prompt(char *cur_user, char *user_dir);
+
+/**
+ * Trim whitespace and line ending
+ * characters from a string
+ */
+void trimstr(char *str, int n);
 
 /**
  * Split a string by a delimiter

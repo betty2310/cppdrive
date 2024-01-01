@@ -1,5 +1,3 @@
-#include "quit.h"
-
 #include <sys/socket.h>
 #include <unistd.h>
 
@@ -7,8 +5,10 @@
 #include <cstdlib>
 #include <cstring>
 
+#include "command.h"
 #include "common.h"
 #include "log.h"
+#include "utils.h"
 
 void server_quit(int sockfd, char* cur_user) {
     chdir(root_dir);

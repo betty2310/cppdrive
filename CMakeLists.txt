@@ -34,7 +34,6 @@ find_package(OpenSSL REQUIRED)
 #                         Locate files (change as needed).
 # --------------------------------------------------------------------------------
 set(SOURCES          # All .cpp files in src/
-    src/common.cpp
     src/authenticate.cpp
     src/connect.cpp
     src/validate.cpp

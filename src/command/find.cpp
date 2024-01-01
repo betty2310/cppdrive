@@ -8,7 +8,6 @@
 #include "command.h"
 #include "common.h"
 #include "connect.h"
-#include "download.h"
 #include "message.h"
 #include "utils.h"
 

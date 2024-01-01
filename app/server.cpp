@@ -11,18 +11,12 @@
 #include <unistd.h>
 
 #include "authenticate.h"
-#include "cd.h"
 #include "command.h"
 #include "common.h"
 #include "connect.h"
-#include "download.h"
 #include "log.h"
-#include "ls.h"
 #include "message.h"
-#include "pwd.h"
-#include "quit.h"
 #include "status.h"
-#include "upload.h"
 #include "utils.h"
 
 char root_dir[SIZE];

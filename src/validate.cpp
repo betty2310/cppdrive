@@ -41,3 +41,11 @@ int validate_file_or_dir(const char *path) {
     else
         return -1;
 }
+
+int is_folder(const char *path) {
+    struct stat pathStat;
+    if (stat(path, &pathStat) == 0) {
+        return S_ISDIR(pathStat.st_mode);
+    }
+    return 0;
+}

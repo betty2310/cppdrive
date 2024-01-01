@@ -1,11 +1,10 @@
-#include "cd.h"
-
 #include <unistd.h>
 
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 
+#include "command.h"
 #include "common.h"
 #include "connect.h"
 #include "message.h"

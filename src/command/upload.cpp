@@ -1,5 +1,3 @@
-#include "upload.h"
-
 #include <libgen.h>
 #include <sys/socket.h>
 #include <utils.h>
@@ -15,6 +13,7 @@
 #include "connect.h"
 #include "log.h"
 #include "message.h"
+#include "validate.h"
 
 char *handle_path(char *dir) {
     char *home = getenv("HOME");

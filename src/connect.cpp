@@ -126,15 +126,6 @@ int client_start_conn(int sock_con) {
     return sock_conn;
 }
 
-int send_response(int sockfd, int rc) {
-    int conv = rc;
-    if (send(sockfd, &conv, sizeof(conv), 0) < 0) {
-        perror("error sending...\n");
-        return -1;
-    }
-    return 0;
-}
-
 /**
  * Receive data on sockfd
  * Returns -1 on error, number of bytes received
@@ -205,51 +196,4 @@ int server_start_conn(int sock_control) {
         return -1;
 
     return sock_data;
-}
-
-/**
- * Wait for command from client and
- * send response
- * Returns response code
- */
-int ftserve_recv_cmd(int sock_control, char *cmd, char *arg, char *cur_user, Message *msg) {
-    int rc = 200;
-    char user_input[SIZE];
-
-    memset(user_input, 0, SIZE);
-    memset(cmd, 0, 5);
-    memset(arg, 0, SIZE);
-
-    // Wait to receive command
-    if ((recv_message(sock_control, msg)) == -1) {
-        perror("Error recevied message!\n");
-        return -1;
-    }
-
-    strncpy(cmd, user_input, 4);
-    strcpy(arg, user_input + 5);
-
-    if (msg->type == MSG_TYPE_LS) {
-        rc = 200;
-    }
-
-    if (strcmp(cmd, "QUIT") == 0) {
-        chdir(root_dir);
-        toggle_lock(cur_user, 0);
-        rc = 221;
-    } else if ((strcmp(cmd, "USER") == 0) || (strcmp(cmd, "PASS") == 0) ||
-               (strcmp(cmd, "LIST") == 0) || (strcmp(cmd, "RETR") == 0) ||
-               (strcmp(cmd, "CWD ") == 0) || (strcmp(cmd, "PWD ") == 0) ||
-               (strcmp(cmd, "LGIN") == 0) || (strcmp(cmd, "REG ") == 0) ||
-               (strcmp(cmd, "STOR") == 0) || (strcmp(cmd, "FIND") == 0) ||
-               (strcmp(cmd, "RENM") == 0) || (strcmp(cmd, "DEL ") == 0) ||
-               (strcmp(cmd, "MOV ") == 0) || (strcmp(cmd, "CPY ") == 0) ||
-               (strcmp(cmd, "MKDR") == 0) || (strcmp(cmd, "SHRE") == 0)) {
-        rc = 200;
-    } else {   // invalid command
-        rc = 502;
-    }
-
-    send_response(sock_control, rc);
-    return rc;
 }

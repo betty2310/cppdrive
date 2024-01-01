@@ -1,5 +1,3 @@
-#include "download.h"
-
 #include <libgen.h>
 #include <sys/socket.h>
 #include <unistd.h>
@@ -11,10 +9,12 @@
 #include <string>
 
 #include "color.h"
+#include "command.h"
 #include "common.h"
 #include "connect.h"
 #include "log.h"
 #include "message.h"
+#include "validate.h"
 
 int handle_download(int data_sock, int sock_control, char *arg) {
     Message msg;

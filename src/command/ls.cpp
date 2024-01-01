@@ -1,5 +1,3 @@
-#include "ls.h"
-
 #include <dirent.h>
 #include <stdio.h>
 #include <sys/socket.h>
@@ -10,6 +8,7 @@
 #include <cstring>
 
 #include "color.h"
+#include "command.h"
 #include "common.h"
 #include "connect.h"
 
