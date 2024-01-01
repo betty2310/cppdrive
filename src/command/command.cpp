@@ -95,6 +95,10 @@ int _process_command(int sockfd, char *base_cmd) {
 }
 
 int process_command(int sockfd, char *base_cmd, char *cur_dir) {
+    if (strncmp(base_cmd, "cat", 3) == 0) {
+        send_message(sockfd, create_status_message(MSG_TYPE_OK, NO));
+        _process_command(sockfd, base_cmd);
+    }
     char *share_folder_path = (char *) malloc(SIZE);
     int share_mode = is_current_share_folder(cur_dir, share_folder_path);
     if (share_mode == -1) {
