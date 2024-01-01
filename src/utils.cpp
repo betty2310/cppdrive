@@ -7,6 +7,20 @@
 #include <termios.h>
 #include <unistd.h>
 
+std::vector<std::string> split(const std::string &s, char delim) {
+    std::vector<std::string> tokens;
+    std::string token;
+    std::istringstream tokenStream(s);
+
+    while (getline(tokenStream, token, delim)) {
+        if (!token.empty()) {
+            tokens.push_back(token);
+        }
+    }
+
+    return tokens;
+}
+
 void zip(const char *folder, const char *compress_path) {
     char command[1000];
     if (compress_path[0] == '/') {

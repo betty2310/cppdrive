@@ -15,7 +15,6 @@
 #include "connect.h"
 #include "log.h"
 #include "message.h"
-#include "reply.h"
 
 int handle_download(int data_sock, int sock_control, char *arg) {
     Message msg;
@@ -62,6 +61,16 @@ int handle_download(int data_sock, int sock_control, char *arg) {
     return 0;
 }
 
+int handle_pipe_download(int sockfd, std::string files) {
+    std::vector<std::string> tokens = split(files, '\n');
+
+    printf("Downloading %d files...\n", (int) tokens.size());
+    for (const auto &l : tokens) {
+        handle_download(sockfd, sockfd, (char *) l.c_str());
+    }
+    return 0;
+}
+
 void server_download(int sock_control, int sock_data, char *dir) {
     char compress_folder[SIZE];
     int fl = is_folder(dir);
@@ -104,4 +113,15 @@ void server_download(int sock_control, int sock_data, char *dir) {
             remove(compress_folder);
         }
     }
+}
+
+void server_pipe_download(int sockfd, char *output) {
+    std::vector<std::string> tokens = split(output, '\n');
+
+    printf("Downloading %d files...\n", (int) tokens.size());
+    // Print the lines or process them as needed
+    for (const auto &l : tokens) {
+        server_download(sockfd, sockfd, (char *) l.c_str());
+    }
+    printf("Downloaded\n");
 }

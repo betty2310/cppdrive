@@ -3,11 +3,14 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <string>
 
 #include "command.h"
 #include "common.h"
 #include "connect.h"
+#include "download.h"
 #include "message.h"
+#include "utils.h"
 
 int server_find(int sockfd, char *arg) {
     FILE *fp;
@@ -20,8 +23,23 @@ int server_find(int sockfd, char *arg) {
     output[0] = '\0';
     char full_cmd[SIZE];
     snprintf(full_cmd, sizeof(full_cmd), "fd %s", arg);
-    // printf("full_cmd: %s\n", full_cmd);
-    fp = popen(full_cmd, "r");
+    std::string cmd(full_cmd);
+    std::string left_cmd, right_cmd;
+
+    size_t pos = cmd.find('|');
+    if (pos != std::string::npos) {
+        // '|' found, split the string
+        left_cmd = cmd.substr(0, pos);
+        left_cmd += " --type f";
+        right_cmd = cmd.substr(pos + 1);
+
+        left_cmd.erase(left_cmd.find_last_not_of(" \n\r\t") + 1);
+        right_cmd.erase(0, right_cmd.find_first_not_of(" \n\r\t"));
+    } else {
+        left_cmd = cmd;
+    }
+
+    fp = popen(left_cmd.c_str(), "r");
     if (fp == NULL) {
         perror("Failed to run command");
         free(output);
@@ -56,5 +74,12 @@ int server_find(int sockfd, char *arg) {
         }
     }
     send_message(sockfd, create_status_message(MSG_TYPE_OK, NO));
+
+    if (!right_cmd.empty()) {
+        send_message(sockfd, create_status_message(MSG_TYPE_PIPE, NO));
+        server_pipe_download(sockfd, output);
+    } else {
+        send_message(sockfd, create_status_message(MSG_TYPE_OK, NO));
+    }
     return 0;
 }

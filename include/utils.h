@@ -32,6 +32,14 @@ int process_menu(const char *menu_items[], int num_items);
 char *handle_prompt(char *cur_user, char *user_dir);
 
 /**
+ * Split a string by a delimiter
+ * @param s string to split
+ * @param delim delimiter
+ * @return vector of strings
+ */
+std::vector<std::string> split(const std::string &s, char delim);
+
+/**
  * compress a folder
  * @param folder path to folder
  * @param compress_path path to compressed file

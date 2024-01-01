@@ -6,6 +6,8 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
+#include <string>
+
 #include "authenticate.h"
 #include "color.h"
 #include "common.h"
@@ -14,19 +16,26 @@
 #include "log.h"
 #include "ls.h"
 #include "pwd.h"
-#include "reply.h"
 #include "upload.h"
 #include "utils.h"
 #include "validate.h"
 
 char root_dir[SIZE];
 
+/**
+ * Read command from user and store in Message struct
+ * @param user_input user input
+ * @param size size of user input
+ * @param msg Message struct
+ * @return 0 if success, -1 if error
+ */
+int cli_read_command(char *user_input, int size, Message *msg);
+
 int main(int argc, char const *argv[]) {
     int sockfd;
     int data_sock;
     char user_input[SIZE];
     char *cur_user;
-    struct command cmd;
 
     if (argc != 3) {
         printf("Usage: %s <ip_adress> <port>\n", argv[0]);
@@ -89,7 +98,7 @@ int main(int argc, char const *argv[]) {
         printf(ANSI_COLOR_GREEN "%s" ANSI_RESET, prompt);
         fflush(stdout);
         Message command;
-        int fl = cli_read_command(user_input, sizeof(user_input), &cmd, &command);
+        int fl = cli_read_command(user_input, sizeof(user_input), &command);
         if (fl == -1) {
             printf("Invalid command\n");
             // next loop
@@ -142,18 +151,26 @@ int main(int argc, char const *argv[]) {
             handle_download(data_sock, sockfd, command.payload);
         } else if (command.type == MSG_TYPE_FIND) {
             Message response;
+            std::string files;
             while (1) {
                 recv_message(sockfd, &response);
                 if (response.type == MSG_TYPE_ERROR)
                     printf("%s\n", response.payload);
                 else if (response.type == MSG_DATA_FIND) {
                     printf("%s", response.payload);
+                    std::string str(response.payload);
+                    files += str;
                 } else {
                     break;
                 }
             }
-        } else if (strcmp(cmd.code, "SHRE") == 0) {
-            int repl = read_reply(sockfd);
+            recv_message(sockfd, &response);
+            if (response.type == MSG_TYPE_PIPE) {
+                handle_pipe_download(sockfd, files);
+            }
+            files = "";
+        } else if (command.type == MSG_TYPE_SHARE) {
+            int repl = 0;
             if (repl == 261)
                 printf("261 Shared successfully\n");
             else if (repl == 462)
@@ -177,5 +194,89 @@ int main(int argc, char const *argv[]) {
 
     // Close the socket (control connection)
     close(sockfd);
+    return 0;
+}
+
+int cli_read_command(char *user_input, int size, Message *msg) {
+    // wait for user to enter a command
+    read_input(user_input, size);
+
+    if (strcmp(user_input, "ls ") == 0 || strcmp(user_input, "ls") == 0) {
+        msg->type = MSG_TYPE_LS;
+    } else if (strncmp(user_input, "cd ", 3) == 0) {
+        msg->type = MSG_TYPE_CD;
+        strcpy(msg->payload, user_input + 3);
+    } else if (strncmp(user_input, "find ", 5) == 0) {
+        std::string cmd(user_input);
+        std::string left_cmd, right_cmd;
+        size_t pos = cmd.find('|');
+        if (pos != std::string::npos) {
+            // '|' found, split the string
+            left_cmd = cmd.substr(0, pos);
+            right_cmd = cmd.substr(pos + 1);
+
+            left_cmd.erase(left_cmd.find_last_not_of(" \n\r\t") + 1);
+            right_cmd.erase(0, right_cmd.find_first_not_of(" \n\r\t"));
+            if (!(right_cmd == "dl" || right_cmd == "download")) {
+                printf("%s not supported!\n", right_cmd.c_str());
+                return -1;
+            } else {
+                msg->type = MSG_TYPE_FIND;
+                strcpy(msg->payload, user_input + 5);
+            }
+        } else {
+            msg->type = MSG_TYPE_FIND;
+            strcpy(msg->payload, user_input + 5);
+        }
+
+    } else if (strncmp(user_input, "rm", 2) == 0) {
+        msg->type = MSG_TYPE_BASIC_COMMAND;
+        strcpy(msg->payload, user_input);
+    } else if (strncmp(user_input, "mv", 2) == 0) {
+        msg->type = MSG_TYPE_BASIC_COMMAND;
+        strcpy(msg->payload, user_input);
+    } else if (strncmp(user_input, "cp", 2) == 0) {
+        msg->type = MSG_TYPE_BASIC_COMMAND;
+        strcpy(msg->payload, user_input);
+    } else if (strncmp(user_input, "share ", 6) == 0) {
+        // strcpy(cstruct->code, "SHRE");
+        // strcpy(cstruct->arg, user_input + 6);
+
+        // memset(user_input, 0, SIZE);
+        // sprintf(user_input, "%s %s", cstruct->code, cstruct->arg);
+    } else if (strncmp(user_input, "mkdir", 5) == 0) {
+        msg->type = MSG_TYPE_BASIC_COMMAND;
+        strcpy(msg->payload, user_input);
+    } else if (strncmp(user_input, "touch", 5) == 0) {
+        msg->type = MSG_TYPE_BASIC_COMMAND;
+        strcpy(msg->payload, user_input);
+    } else if (strncmp(user_input, "cat", 3) == 0) {
+        msg->type = MSG_TYPE_BASIC_COMMAND;
+        strcpy(msg->payload, user_input);
+    } else if (strcmp(user_input, "pwd") == 0 || strcmp(user_input, "pwd ") == 0) {
+        msg->type = MSG_TYPE_PWD;
+    } else if (strncmp(user_input, "up ", 3) == 0 || strncmp(user_input, "upload ", 7) == 0) {
+        msg->type = MSG_TYPE_UPLOAD;
+        if (strncmp(user_input, "up ", 3) == 0) {
+            strcpy(msg->payload, user_input + 3);
+        } else {
+            strcpy(msg->payload, user_input + 7);
+        }
+    } else if (strncmp(user_input, "dl ", 3) == 0 || strncmp(user_input, "download ", 9) == 0) {
+        msg->type = MSG_TYPE_DOWNLOAD;
+        if (strncmp(user_input, "dl ", 3) == 0) {
+            strcpy(msg->payload, user_input + 3);
+        } else {
+            strcpy(msg->payload, user_input + 9);
+        }
+    } else if (strcmp(user_input, "quit") == 0 || strcmp(user_input, "quit ") == 0 ||
+               strcmp(user_input, "exit") == 0 || strcmp(user_input, "exit ") == 0) {
+        msg->type = MSG_TYPE_QUIT;
+    } else if (strcmp(user_input, "clear") == 0) {
+        system("clear");
+    } else {
+        return -1;
+    }
+
     return 0;
 }

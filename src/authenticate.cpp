@@ -11,7 +11,6 @@
 #include "common.h"
 #include "connect.h"
 #include "message.h"
-#include "reply.h"
 
 void sha256(const char *input, char *output) {
     EVP_MD_CTX *mdctx;

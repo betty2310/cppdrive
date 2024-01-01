@@ -38,7 +38,6 @@ set(SOURCES          # All .cpp files in src/
     src/authenticate.cpp
     src/connect.cpp
     src/validate.cpp
-    src/reply.cpp
     src/utils.cpp
     src/message.cpp
     src/status.cpp

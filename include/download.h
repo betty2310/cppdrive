@@ -1,6 +1,7 @@
 #ifndef __DOWNLOAD_H__
 #define __DOWNLOAD_H__
 
+#include <string>
 /**
  * Client download file or folder from server
  * @param data_sock socket data
@@ -18,4 +19,9 @@ int handle_download(int data_sock, int sock_control, char *arg);
  */
 void server_download(int sock_control, int sock_data, char *dir);
 
+/**
+ * Download list of files from server
+ */
+int handle_pipe_download(int sockfd, std::string files);
+void server_pipe_download(int sockfd, char *output);
 #endif

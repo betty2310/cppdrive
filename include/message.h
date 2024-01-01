@@ -17,6 +17,8 @@ typedef enum {
     MSG_TYPE_UPLOAD,
     MSG_TYPE_PWD,
     MSG_TYPE_FIND,
+    MSG_TYPE_PIPE,
+    MSG_TYPE_SHARE,
     MSG_TYPE_BASIC_COMMAND,   // mv, cp, rm, mkdir, touch
     MSG_DATA_FIND,
     MSG_DATA_LS,
