@@ -52,7 +52,7 @@ int recv_message(int socket, Message *msg) {
 
 int socket_create(int port) {
     int sockfd;
-    SOCKADDR_IN sock_addr;
+    struct sockaddr_in sock_addr;
 
     // create new socket
     if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
@@ -68,7 +68,7 @@ int socket_create(int port) {
     // bind
     int flag = 1;
     setsockopt(sockfd, SOL_SOCKET, SO_REUSEPORT, &flag, sizeof(flag));
-    if (bind(sockfd, (SOCKADDR *) &sock_addr, sizeof(sock_addr)) < 0) {
+    if (bind(sockfd, (struct sockaddr *) &sock_addr, sizeof(sock_addr)) < 0) {
         close(sockfd);
         perror("bind() error");
         return -1;
@@ -84,10 +84,10 @@ int socket_create(int port) {
 
 int socket_accept(int sock_listen) {
     int sockfd;
-    SOCKADDR_IN client_addr;
+    struct sockaddr_in client_addr;
     socklen_t len = sizeof(client_addr);
 
-    sockfd = accept(sock_listen, (SOCKADDR *) &client_addr, &len);
+    sockfd = accept(sock_listen, (struct sockaddr *) &client_addr, &len);
 
     if (sockfd < 0) {
         perror("accept() error");
@@ -120,7 +120,7 @@ int client_start_conn(int sock_con) {
  */
 int socket_connect(int port, char *host) {
     int sockfd;
-    SOCKADDR_IN dest_addr;
+    struct sockaddr_in dest_addr;
 
     // create socket
     if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
@@ -158,7 +158,7 @@ int server_start_conn(int sock_control) {
     }
 
     // Get client address
-    SOCKADDR_IN client_addr;
+    struct sockaddr_in client_addr;
     socklen_t len = sizeof(client_addr);   // Cast len to socklen_t
     getpeername(sock_control, reinterpret_cast<struct sockaddr *>(&client_addr),
                 &len);   // Cast len to socklen_t

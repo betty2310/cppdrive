@@ -47,18 +47,18 @@ int main(int argc, char const *argv[]) {
 
     sockfd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 
-    if (sockfd == INVALID_SOCKET) {
+    if (sockfd == -1) {
         perror("Error: ");
         exit(1);
     }
 
-    SOCKADDR_IN sock_addr;
+    struct sockaddr_in sock_addr;
 
     sock_addr.sin_family = AF_INET;
     sock_addr.sin_port = htons(atoi(argv[2]));
     sock_addr.sin_addr.s_addr = inet_addr(argv[1]);
 
-    int connect_status = connect(sockfd, (SOCKADDR *) &sock_addr, sizeof(sock_addr));
+    int connect_status = connect(sockfd, (struct sockaddr *) &sock_addr, sizeof(sock_addr));
 
     if (connect_status == -1) {
         printf("Error: Connection failed!\n");
