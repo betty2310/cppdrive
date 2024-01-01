@@ -63,10 +63,23 @@ int process_command(int sockfd, char *base_cmd) {
         send_message(sockfd, create_message(MSG_TYPE_ERROR, errorString));
         return -1;
     }
-    send_message(sockfd, create_message(MSG_TYPE_OK, cmd_output));
+
+    int n = (int) strlen(cmd_output);
+    int index = 0, readed = 0;
+    while (readed < n) {
+        cmd_output += index;
+        send_message(sockfd, create_message(MSG_DATA_CMD, cmd_output));
+        if (n - readed > PAYLOAD_SIZE) {
+            index = PAYLOAD_SIZE;
+            readed += PAYLOAD_SIZE;
+        } else {
+            index = n - readed;
+            readed = n;
+        }
+    }
+    send_message(sockfd, create_status_message(MSG_TYPE_OK, NO));
     sprintf(msg_log, "Success: %s", base_cmd);
     server_log('i', msg_log);
     free(msg_log);
-    free(cmd_output);
     return 0;
 }

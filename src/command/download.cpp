@@ -1,6 +1,8 @@
 #include "download.h"
 
+#include <libgen.h>
 #include <sys/socket.h>
+#include <unistd.h>
 #include <utils.h>
 
 #include <cstdio>
@@ -33,11 +35,13 @@ int handle_download(int data_sock, int sock_control, char *arg) {
     char *path = (char *) malloc(SIZE);
     strcpy(path, home);
     strcat(path, "/Downloads/");
-    strcat(path, arg);
+
+    char *last_past = basename(arg);
+    strcat(path, last_past);
 
     FILE *fp = fopen(path, "w");
     if (!fp) {
-        perror("error opening file\n");
+        perror("ERROR opening file: ");
         return -1;
     }
 

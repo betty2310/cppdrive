@@ -115,12 +115,15 @@ int main(int argc, char const *argv[]) {
             handle_list(data_sock);
         } else if (command.type == MSG_TYPE_BASIC_COMMAND) {
             Message response;
-            recv_message(sockfd, &response);
-            if (response.type == MSG_TYPE_ERROR)
-                error = 1;
-            else {
-                error = 0;
-                printf("%s\n", response.payload);
+            while (1) {
+                recv_message(sockfd, &response);
+                if (response.type == MSG_TYPE_ERROR)
+                    printf("%s\n", response.payload);
+                else if (response.type == MSG_DATA_CMD) {
+                    printf("%s", response.payload);
+                } else {
+                    break;
+                }
             }
         } else if (command.type == MSG_TYPE_CD) {
             Message response;

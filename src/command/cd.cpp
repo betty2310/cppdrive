@@ -28,8 +28,9 @@ int server_cd(int sockfd, char *dir, char *user_dir) {
         if (!is_subdir(user_dir, cur_dir)) {
             chdir(prev_dir);
             send_message(sockfd, create_status_message(MSG_TYPE_ERROR, DIRECTORY_NOT_FOUND));
-        } else
+        } else {
             send_message(sockfd, create_message(MSG_DATA_CD, cur_dir));
+        }
     } else {
         send_message(sockfd, create_status_message(MSG_TYPE_ERROR, DIRECTORY_NOT_FOUND));
     }

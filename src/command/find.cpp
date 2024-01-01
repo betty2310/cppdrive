@@ -20,7 +20,7 @@ int server_find(int sockfd, char *arg) {
     output[0] = '\0';
     char full_cmd[SIZE];
     snprintf(full_cmd, sizeof(full_cmd), "fd %s", arg);
-    printf("full_cmd: %s\n", full_cmd);
+    // printf("full_cmd: %s\n", full_cmd);
     fp = popen(full_cmd, "r");
     if (fp == NULL) {
         perror("Failed to run command");

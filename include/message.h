@@ -21,6 +21,7 @@ typedef enum {
     MSG_DATA_FIND,
     MSG_DATA_LS,
     MSG_DATA_CD,
+    MSG_DATA_CMD,
     MSG_TYPE_DOWNLOAD_FOLDER,
     MSG_TYPE_DOWNLOAD_FILE,
 } MessageType;

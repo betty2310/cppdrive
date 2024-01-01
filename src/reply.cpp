@@ -125,7 +125,8 @@ int cli_read_command(char *user_input, int size, struct command *cstruct, Messag
         } else {
             strcpy(msg->payload, user_input + 9);
         }
-    } else if (strcmp(user_input, "quit") == 0) {
+    } else if (strcmp(user_input, "quit") == 0 || strcmp(user_input, "quit ") == 0 ||
+               strcmp(user_input, "exit") == 0 || strcmp(user_input, "exit ") == 0) {
         msg->type = MSG_TYPE_QUIT;
     } else if (strcmp(user_input, "clear") == 0) {
         system("clear");
