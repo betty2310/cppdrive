@@ -1,18 +1,9 @@
 #include <arpa/inet.h>
-#include <ctype.h>
-#include <dirent.h>
-#include <errno.h>
-#include <fcntl.h>
 #include <netdb.h>
-#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <sys/wait.h>
-#include <time.h>
 #include <unistd.h>
 
 #include "authenticate.h"
@@ -89,8 +80,12 @@ int main(int argc, char const *argv[]) {
     // begin shell
     char *user_dir = (char *) malloc(SIZE);
     strcpy(user_dir, "~/");
+    int error = 0;
     while (1) {
         char *prompt = handle_prompt(cur_user, user_dir);
+        if (error) {
+            printf(ANSI_COLOR_RED "%s" ANSI_RESET, prompt);
+        }
         printf(ANSI_COLOR_GREEN "%s" ANSI_RESET, prompt);
         fflush(stdout);
         Message command;
@@ -118,6 +113,15 @@ int main(int argc, char const *argv[]) {
             break;
         } else if (command.type == MSG_TYPE_LS) {
             handle_list(data_sock);
+        } else if (command.type == MSG_TYPE_BASIC_COMMAND) {
+            Message response;
+            recv_message(sockfd, &response);
+            if (response.type == MSG_TYPE_ERROR)
+                error = 1;
+            else {
+                error = 0;
+                printf("%s\n", response.payload);
+            }
         } else if (command.type == MSG_TYPE_CD) {
             Message response;
             recv_message(sockfd, &response);
@@ -142,40 +146,6 @@ int main(int argc, char const *argv[]) {
                     handle_list(data_sock);   // ham nay in mess tu server
             } else if (repl == 441)
                 printf("441 File not found!\n");
-        } else if (command.type == MSG_TYPE_MV) {
-            Message response;
-            recv_message(sockfd, &response);
-            switch (response.type) {
-                case MSG_TYPE_OK:
-                    break;
-                case MSG_TYPE_ERROR:
-                    printf(ANSI_COLOR_RED "%s" ANSI_RESET "\n", response.payload);
-                    break;
-                default:
-                    break;
-            }
-        } else if (strcmp(cmd.code, "DEL ") == 0) {
-            int repl = read_reply(sockfd);
-            if (repl == 252)
-                printf("252 Delete successfully\n");
-            else if (repl == 453)
-                printf("451 Delete failure\n");
-        } else if (strcmp(cmd.code, "MOV ") == 0) {
-            int repl = read_reply(sockfd);
-            if (repl == 253)
-                printf("253 Moved successfully\n");
-            else if (repl == 454)
-                printf("454 Move failure\n");
-            else if (repl == 455)
-                printf("455 Syntax error (mov <filepath> <newfilepath>)\n");
-        } else if (strcmp(cmd.code, "CPY ") == 0) {
-            int repl = read_reply(sockfd);
-            if (repl == 253)
-                printf("253 Copied successfully\n");
-            else if (repl == 454)
-                printf("454 Copy failure\n");
-            else if (repl == 455)
-                printf("455 Syntax error (cpy <filepath> <newfilepath>)\n");
         } else if (strcmp(cmd.code, "SHRE") == 0) {
             int repl = read_reply(sockfd);
             if (repl == 261)
@@ -188,11 +158,10 @@ int main(int argc, char const *argv[]) {
                 printf("464 Must not share to yourself\n");
             else if (repl == 461)
                 printf("461 Syntax error (share <username> <filename>)\n");
-        } else if (command.type == MSG_TYPE_MKDIR) {
+
         } else if (command.type == MSG_TYPE_PWD) {
             const char *pwd = handle_pwd(cur_user, user_dir);
             printf("%s\n", pwd);
-
         } else if (command.type == MSG_TYPE_UPLOAD) {
             handle_upload(data_sock, command.payload, sockfd);
         }

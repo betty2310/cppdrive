@@ -39,10 +39,10 @@ set(SOURCES          # All .cpp files in src/
     src/connect.cpp
     src/command/download.cpp
     src/command/ls.cpp
+    src/command/command.cpp
     src/reply.cpp
     src/command/upload.cpp
     src/utils.cpp
-    src/file.cpp
     src/find.cpp
     src/command/cd.cpp
     src/command/quit.cpp

@@ -1,10 +1,4 @@
 #include <arpa/inet.h>
-#include <ctype.h>
-#include <dirent.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <netdb.h>
-#include <netinet/in.h>
 #include <openssl/sha.h>
 #include <signal.h>
 #include <stdio.h>
@@ -18,10 +12,10 @@
 
 #include "authenticate.h"
 #include "cd.h"
+#include "command.h"
 #include "common.h"
 #include "connect.h"
 #include "download.h"
-#include "file.h"
 #include "find.h"
 #include "log.h"
 #include "ls.h"
@@ -71,9 +65,6 @@ int main(int argc, char const *argv[]) {
 
 void ftserve_process(int sockfd) {
     int sock_data;
-    char cmd[5];
-    char arg[SIZE];
-
     char user_dir[SIZE] = "user/";
     char *cur_user;
 
@@ -143,11 +134,8 @@ void ftserve_process(int sockfd) {
             case MSG_TYPE_UPLOAD:
                 server_upload(sockfd, sock_data, msg.payload, user_dir);
                 break;
-            case MSG_TYPE_MV:
-                server_mv(sockfd, msg.payload);
-                break;
-            case MSG_TYPE_MKDIR:
-                server_mkdir(msg.payload, user_dir);
+            case MSG_TYPE_BASIC_COMMAND:
+                process_command(sockfd, msg.payload);
                 break;
             case MSG_TYPE_QUIT:
                 server_quit(sockfd, cur_user);
@@ -155,18 +143,11 @@ void ftserve_process(int sockfd) {
             default:
                 break;
         }
-        if (strcmp(cmd, "FIND") == 0) {   // find file
-            ftserve_find(sockfd, sock_data, arg);
-        } else if (strcmp(cmd, "SHRE") == 0) {   // share file
-            ftserve_share(sockfd, arg, cur_user);
-        } else if (strcmp(cmd, "RENM") == 0) {   // rename file and folder
-        } else if (strcmp(cmd, "DEL ") == 0) {   // rename file and folder
-            ftserve_delete(sockfd, arg);
-        } else if (strcmp(cmd, "MOV ") == 0) {   // rename file and folder
-            ftserve_move(sockfd, arg);
-        } else if (strcmp(cmd, "CPY ") == 0) {   // rename file and folder
-            ftserve_copy(sockfd, arg);
-        }
+        // if (strcmp(cmd, "FIND") == 0) {   // find file
+        //     // ftserve_find(sockfd, sock_data, arg);
+        // } else if (strcmp(cmd, "SHRE") == 0) {   // share file
+        //     // ftserve_share(sockfd, arg, cur_user);
+        // }
         // Close data connection
         close(sock_data);
     }

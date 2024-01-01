@@ -88,36 +88,30 @@ int cli_read_command(char *user_input, int size, struct command *cstruct, Messag
 
         memset(user_input, 0, SIZE);
         sprintf(user_input, "%s %s", cstruct->code, cstruct->arg);
-    } else if (strncmp(user_input, "renm ", 5) == 0) {
-        strcpy(cstruct->code, "RENM");
-        strcpy(cstruct->arg, user_input + 5);
-
-        memset(user_input, 0, SIZE);
-        sprintf(user_input, "%s %s", cstruct->code, cstruct->arg);
-    } else if (strncmp(user_input, "del ", 4) == 0) {
-        strcpy(cstruct->code, "DEL ");
-        strcpy(cstruct->arg, user_input + 4);
-
-        memset(user_input, 0, SIZE);
-        sprintf(user_input, "%s %s", cstruct->code, cstruct->arg);
-    } else if (strncmp(user_input, "mv ", 3) == 0) {
-        msg->type = MSG_TYPE_MV;
-        strcpy(msg->payload, user_input + 3);
-    } else if (strncmp(user_input, "cpy ", 4) == 0) {
-        strcpy(cstruct->code, "CPY ");
-        strcpy(cstruct->arg, user_input + 4);
-
-        memset(user_input, 0, SIZE);
-        sprintf(user_input, "%s %s", cstruct->code, cstruct->arg);
+    } else if (strncmp(user_input, "rm", 2) == 0) {
+        msg->type = MSG_TYPE_BASIC_COMMAND;
+        strcpy(msg->payload, user_input);
+    } else if (strncmp(user_input, "mv", 2) == 0) {
+        msg->type = MSG_TYPE_BASIC_COMMAND;
+        strcpy(msg->payload, user_input);
+    } else if (strncmp(user_input, "cp", 2) == 0) {
+        msg->type = MSG_TYPE_BASIC_COMMAND;
+        strcpy(msg->payload, user_input);
     } else if (strncmp(user_input, "share ", 6) == 0) {
         strcpy(cstruct->code, "SHRE");
         strcpy(cstruct->arg, user_input + 6);
 
         memset(user_input, 0, SIZE);
         sprintf(user_input, "%s %s", cstruct->code, cstruct->arg);
-    } else if (strncmp(user_input, "mkdir ", 6) == 0) {
-        msg->type = MSG_TYPE_MKDIR;
-        strcpy(msg->payload, user_input + 6);
+    } else if (strncmp(user_input, "mkdir", 5) == 0) {
+        msg->type = MSG_TYPE_BASIC_COMMAND;
+        strcpy(msg->payload, user_input);
+    } else if (strncmp(user_input, "touch", 5) == 0) {
+        msg->type = MSG_TYPE_BASIC_COMMAND;
+        strcpy(msg->payload, user_input);
+    } else if (strncmp(user_input, "cat", 3) == 0) {
+        msg->type = MSG_TYPE_BASIC_COMMAND;
+        strcpy(msg->payload, user_input);
     } else if (strcmp(user_input, "pwd") == 0 || strcmp(user_input, "pwd ") == 0) {
         msg->type = MSG_TYPE_PWD;
     } else if (strncmp(user_input, "up ", 3) == 0 || strncmp(user_input, "upload ", 7) == 0) {
