@@ -137,15 +137,18 @@ int main(int argc, char const *argv[]) {
             }
         } else if (command.type == MSG_TYPE_DOWNLOAD) {
             handle_download(data_sock, sockfd, command.payload);
-        } else if (strcmp(cmd.code, "FIND") == 0) {
-            int repl = read_reply(sockfd);
-            // File found
-            if (repl == 241) {
-                int nums = read_reply(sockfd);
-                for (int i = 0; i < nums; ++i)
-                    handle_list(data_sock);   // ham nay in mess tu server
-            } else if (repl == 441)
-                printf("441 File not found!\n");
+        } else if (command.type == MSG_TYPE_FIND) {
+            Message response;
+            while (1) {
+                recv_message(sockfd, &response);
+                if (response.type == MSG_TYPE_ERROR)
+                    printf("%s\n", response.payload);
+                else if (response.type == MSG_DATA_FIND) {
+                    printf("%s", response.payload);
+                } else {
+                    break;
+                }
+            }
         } else if (strcmp(cmd.code, "SHRE") == 0) {
             int repl = read_reply(sockfd);
             if (repl == 261)

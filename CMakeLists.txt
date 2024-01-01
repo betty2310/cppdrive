@@ -37,20 +37,20 @@ set(SOURCES          # All .cpp files in src/
     src/common.cpp
     src/authenticate.cpp
     src/connect.cpp
+    src/validate.cpp
+    src/reply.cpp
+    src/utils.cpp
+    src/message.cpp
+    src/status.cpp
+    src/log.cpp
     src/command/download.cpp
     src/command/ls.cpp
     src/command/command.cpp
-    src/reply.cpp
     src/command/upload.cpp
-    src/utils.cpp
-    src/find.cpp
+    src/command/find.cpp
     src/command/cd.cpp
     src/command/quit.cpp
     src/command/pwd.cpp
-    src/validate.cpp
-    src/status.cpp
-    src/message.cpp
-    src/log.cpp
 )
 
 set(LIBRARY_NAME engine)  # Default name for the library built from src/*.cpp (change if you wish)

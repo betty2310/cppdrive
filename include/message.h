@@ -16,11 +16,9 @@ typedef enum {
     MSG_TYPE_DOWNLOAD,
     MSG_TYPE_UPLOAD,
     MSG_TYPE_PWD,
-    MSG_TYPE_MV,
-    MSG_TYPE_TOUCH,
-    MSG_TYPE_MKDIR,
-    MSG_TYPE_RM,
+    MSG_TYPE_FIND,
     MSG_TYPE_BASIC_COMMAND,   // mv, cp, rm, mkdir, touch
+    MSG_DATA_FIND,
     MSG_DATA_LS,
     MSG_DATA_CD,
     MSG_TYPE_DOWNLOAD_FOLDER,

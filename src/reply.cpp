@@ -83,11 +83,8 @@ int cli_read_command(char *user_input, int size, struct command *cstruct, Messag
         msg->type = MSG_TYPE_CD;
         strcpy(msg->payload, user_input + 3);
     } else if (strncmp(user_input, "find ", 5) == 0) {
-        strcpy(cstruct->code, "FIND");
-        strcpy(cstruct->arg, user_input + 5);
-
-        memset(user_input, 0, SIZE);
-        sprintf(user_input, "%s %s", cstruct->code, cstruct->arg);
+        msg->type = MSG_TYPE_FIND;
+        strcpy(msg->payload, user_input + 5);
     } else if (strncmp(user_input, "rm", 2) == 0) {
         msg->type = MSG_TYPE_BASIC_COMMAND;
         strcpy(msg->payload, user_input);

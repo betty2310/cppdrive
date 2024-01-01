@@ -8,4 +8,12 @@
  */
 int process_command(int sockfd, char* cmd);
 
+/**
+ * List files in current directory
+ * @param sockfd: socket to send result to
+ * @param arg: argument of command
+ * @return 0 if success, -1 if error
+ */
+int server_find(int sockfd, char* arg);
+
 #endif   // !__COMMAND_H__

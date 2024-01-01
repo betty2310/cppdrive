@@ -16,7 +16,6 @@
 #include "common.h"
 #include "connect.h"
 #include "download.h"
-#include "find.h"
 #include "log.h"
 #include "ls.h"
 #include "message.h"
@@ -137,14 +136,16 @@ void ftserve_process(int sockfd) {
             case MSG_TYPE_BASIC_COMMAND:
                 process_command(sockfd, msg.payload);
                 break;
+            case MSG_TYPE_FIND:
+                server_find(sockfd, msg.payload);
+                break;
             case MSG_TYPE_QUIT:
                 server_quit(sockfd, cur_user);
                 break;
             default:
                 break;
         }
-        // if (strcmp(cmd, "FIND") == 0) {   // find file
-        //     // ftserve_find(sockfd, sock_data, arg);
+
         // } else if (strcmp(cmd, "SHRE") == 0) {   // share file
         //     // ftserve_share(sockfd, arg, cur_user);
         // }
