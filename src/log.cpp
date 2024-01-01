@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <time.h>
 
+#include <cstring>
 #include <string>
 
 std::string get_log_level(char level) {
@@ -20,9 +21,13 @@ std::string get_log_level(char level) {
 }
 
 void log_message(char level, const char* message) {
-    FILE* fp = fopen(LOG_FILE, "a");
+    char* home = getenv("HOME");
+    char* path = (char*) malloc(256);
+    strcpy(path, home);
+    strcat(path, "/log.txt");
+    FILE* fp = fopen(path, "a");
     if (fp == NULL) {
-        printf("Error: Failed to open file %s\n", LOG_FILE);
+        printf("Error: Failed to open file %s\n", path);
         exit(1);
     }
     time_t now = time(NULL);
@@ -34,9 +39,13 @@ void log_message(char level, const char* message) {
 }
 
 void server_log(char level, const char* message) {
-    FILE* fp = fopen(SERVER_LOG_FILE, "a");
+    char* home = getenv("HOME");
+    char* path = (char*) malloc(256);
+    strcpy(path, home);
+    strcat(path, "/server_log.txt");
+    FILE* fp = fopen(path, "a");
     if (fp == NULL) {
-        printf("Error: Failed to open file %s\n", SERVER_LOG_FILE);
+        printf("Error: Failed to open file %s\n", path);
         exit(1);
     }
     time_t now = time(NULL);

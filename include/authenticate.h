@@ -20,11 +20,6 @@ char *handle_login(int sock_control);
  */
 void register_acc(int sockfd);
 
-// Function to remove duplicates from the file
-void removeDuplicates(FILE *file);
-// Function to clean up the file
-void cleanUpFile(const char *filename);
-
 /**
  * Authenticate a user's credentials
  * Return 1 if authenticated, 0 if not

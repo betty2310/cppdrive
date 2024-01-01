@@ -1,9 +1,6 @@
 #ifndef __LOG_H__
 #define __LOG_H__
 
-#define LOG_FILE        "/Users/betty/Developer/cppdrive/build/log.txt"
-#define SERVER_LOG_FILE "/Users/betty/Developer/cppdrive/build/server_log.txt"
-
 /**
  * Log message to file
  * @param level log level [i]nfo, [w]arning, [e]rror
