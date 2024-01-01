@@ -133,10 +133,10 @@ void ftserve_process(int sockfd) {
                 server_download(sockfd, sock_data, msg.payload);
                 break;
             case MSG_TYPE_UPLOAD:
-                server_upload(sockfd, sock_data, msg.payload, user_dir);
+                server_upload(sockfd, sock_data, msg.payload, cur_dir);
                 break;
             case MSG_TYPE_BASIC_COMMAND:
-                process_command(sockfd, msg.payload);
+                process_command(sockfd, msg.payload, cur_dir);
                 break;
             case MSG_TYPE_FIND:
                 server_find(sockfd, msg.payload);

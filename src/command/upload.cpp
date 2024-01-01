@@ -6,8 +6,11 @@
 
 #include <cstdio>
 #include <cstring>
+#include <string>
+#include <vector>
 
 #include "color.h"
+#include "command.h"
 #include "common.h"
 #include "connect.h"
 #include "log.h"
@@ -31,6 +34,13 @@ void handle_upload(int sock_data, char *dir, int sock_control) {
     dir = handle_path(dir);
     char compress_folder[SIZE];
     int fl = is_folder(dir);
+
+    Message msg;
+    recv_message(sock_control, &msg);
+    if (msg.type == MSG_TYPE_ERROR) {
+        printf(ANSI_COLOR_YELLOW "%s" ANSI_RESET "\n", msg.payload);
+        return;
+    }
 
     printf("Uploading file %s to server!\n", dir);
     if (is_folder(dir)) {
@@ -78,7 +88,7 @@ void handle_upload(int sock_data, char *dir, int sock_control) {
     }
 }
 
-int server_upload(int sock_control, int data_sock, char *arg, char *cur_dir) {
+int _upload(int sock_control, int data_sock, char *arg, char *cur_dir) {
     Message msg;
     recv_message(sock_control, &msg);
     int is_file = msg.type == MSG_TYPE_DOWNLOAD_FILE ? 1 : 0;
@@ -94,10 +104,10 @@ int server_upload(int sock_control, int data_sock, char *arg, char *cur_dir) {
 
     char *last_past = basename(arg);
     char *path = (char *) malloc(SIZE);
+
     strcpy(path, cur_dir);
     strcat(path, "/");
     strcat(path, last_past);
-    printf("%s\n", path);
 
     FILE *fp = fopen(path, "w");
     if (!fp) {
@@ -133,5 +143,27 @@ int server_upload(int sock_control, int data_sock, char *arg, char *cur_dir) {
         unzip(path, extracted_path);
         remove(path);
     }
+    return 0;
+}
+
+int server_upload(int sock_control, int data_sock, char *arg, char *cur_dir) {
+    char *share_folder_path = (char *) malloc(sizeof(char) * SIZE);
+    int share_mode = is_current_share_folder(cur_dir, share_folder_path);
+    if (share_mode == -1) {
+        char error_msg[] = "You should not upload file to share folder";
+        send_message(sock_control, create_message(MSG_TYPE_ERROR, error_msg));
+        return -1;
+    } else if (share_mode == 0) {
+        char error_msg[] = "Error: You don't have permission to access this folder!";
+        send_message(sock_control, create_message(MSG_TYPE_ERROR, error_msg));
+        return -1;
+    } else if (share_mode == 2) {
+        send_message(sock_control, create_status_message(MSG_TYPE_OK, NO));
+        _upload(sock_control, data_sock, arg, cur_dir);
+    } else {
+        send_message(sock_control, create_status_message(MSG_TYPE_OK, NO));
+        _upload(sock_control, data_sock, arg, share_folder_path);
+    }
+    free(share_folder_path);
     return 0;
 }

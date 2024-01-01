@@ -92,38 +92,3 @@ int server_share(int sockfd, char* arg, char* user_dir) {
     }
     return 0;
 }
-
-int load_shared_file(char* user_dir) {
-    std::string user_path(user_dir);
-    std::string share_path = user_path + "/share/.share";
-    system(("rm -rf " + user_path + "/share/*").c_str());
-    std::ifstream file(share_path);
-
-    if (!file.is_open()) {
-        return -1;
-    }
-
-    std::string line;
-    while (std::getline(file, line)) {
-        std::istringstream iss(line);
-        std::string path;
-        int number;
-
-        if (!(iss >> path >> number)) {
-            continue;
-        }
-
-        printf("%s - %d\n", path.c_str(), number);
-        int fl = validate_file_or_dir(path.c_str());
-        if (fl < 0) {
-            continue;
-        } else if (fl == 0) {
-            system(("cp -r " + path + " " + user_path + "/share").c_str());
-        } else if (fl == 1) {
-            system(("cp " + path + " " + user_path + "/share").c_str());
-        }
-    }
-
-    file.close();
-    return 0;
-}

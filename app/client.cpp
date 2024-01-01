@@ -124,6 +124,11 @@ int main(int argc, char const *argv[]) {
             handle_list(data_sock);
         } else if (command.type == MSG_TYPE_BASIC_COMMAND) {
             Message response;
+            recv_message(sockfd, &response);
+            if (response.type == MSG_TYPE_ERROR) {
+                printf(ANSI_COLOR_YELLOW "%s" ANSI_RESET "\n", response.payload);
+                continue;
+            }
             while (1) {
                 recv_message(sockfd, &response);
                 if (response.type == MSG_TYPE_ERROR)
@@ -181,7 +186,7 @@ int main(int argc, char const *argv[]) {
                     printf("%s\n", response.payload);
                     continue;
                 } else {
-                    printf(ANSI_COLOR_GREEN "Shared sucessfully!" ANSI_RESET "\n");
+                    printf("Shared sucessfully!\n");
                 }
             }
 

@@ -1,14 +1,22 @@
 #include "command.h"
 
 #include <errno.h>
+#include <libgen.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include <fstream>
+#include <sstream>
+#include <vector>
 
 #include "common.h"
 #include "connect.h"
 #include "log.h"
 #include "message.h"
+#include "utils.h"
+#include "validate.h"
+
 #define INITIAL_SIZE 1024
 
 /**
@@ -49,7 +57,8 @@ char *get_cmd_output(char *cmd) {
     pclose(fp);
     return output;
 }
-int process_command(int sockfd, char *base_cmd) {
+
+int _process_command(int sockfd, char *base_cmd) {
     char cmd[256];
     char *cmd_output = get_cmd_output(base_cmd);
     // we want slient mode
@@ -82,4 +91,121 @@ int process_command(int sockfd, char *base_cmd) {
     server_log('i', msg_log);
     free(msg_log);
     return 0;
+}
+
+int process_command(int sockfd, char *base_cmd, char *cur_dir) {
+    char *share_folder_path = (char *) malloc(SIZE);
+    int share_mode = is_current_share_folder(cur_dir, share_folder_path);
+    if (share_mode == -1) {
+        char err_msg[] = "You shouldn't modify files in the share folder.";
+        send_message(sockfd, create_message(MSG_TYPE_ERROR, err_msg));
+        return -1;
+    } else if (share_mode == 0) {
+        char err_msg[] = "You do not have permission to modify this folder.";
+        send_message(sockfd, create_message(MSG_TYPE_ERROR, err_msg));
+        return -1;
+    } else if (share_mode == 2) {
+        send_message(sockfd, create_status_message(MSG_TYPE_OK, NO));
+        _process_command(sockfd, base_cmd);
+    } else {
+        send_message(sockfd, create_status_message(MSG_TYPE_OK, NO));
+        _process_command(sockfd, base_cmd);
+        std::string user_path(cur_dir);
+        std::string share_path(share_folder_path);
+        std::string rm_cmd = "rm -rf " + share_path + "/*";
+        system(rm_cmd.c_str());
+        std::string cp_cmd = "cp -r " + user_path + "/* " + share_path;
+        system(cp_cmd.c_str());
+    }
+    return 0;
+}
+
+int load_shared_file(char *user_dir) {
+    std::string user_path(user_dir);
+    std::string share_path = user_path + "/share/.share";
+    system(("rm -rf " + user_path + "/share/*").c_str());
+    std::ifstream file(share_path);
+
+    if (!file.is_open()) {
+        return -1;
+    }
+
+    std::string line;
+    while (std::getline(file, line)) {
+        std::istringstream iss(line);
+        std::string path;
+        int number;
+
+        if (!(iss >> path >> number)) {
+            continue;
+        }
+
+        int fl = validate_file_or_dir(path.c_str());
+        if (fl < 0) {
+            continue;
+        } else if (fl == 0) {
+            system(("cp -r " + path + " " + user_path + "/share").c_str());
+        } else if (fl == 1) {
+            system(("cp " + path + " " + user_path + "/share").c_str());
+        }
+    }
+
+    file.close();
+    return 0;
+}
+
+int check_permision(const char *c_dir, const char *share_path, char *share_folder_path) {
+    std::ifstream file(share_path);
+    if (!file.is_open()) {
+        return -1;
+    }
+
+    std::string line;
+    while (std::getline(file, line)) {
+        std::istringstream iss(line);
+        std::string path;
+        int number;
+
+        if (!(iss >> path >> number)) {
+            continue;
+        }
+
+        char *c_base = basename((char *) path.c_str());
+        std::string base(c_base);
+        std::string dir(c_dir);
+        if (base == dir) {
+            strcpy(share_folder_path, path.c_str());
+            return number;
+        }
+    }
+
+    file.close();
+    return 0;
+}
+
+int is_current_share_folder(char *dir, char *share_folder_path) {
+    std::string cur_dir(dir);
+    std::vector<std::string> tokens = split(cur_dir, '/');
+    int index = -1;
+    for (int i = 0; i < (int) tokens.size(); i++) {
+        if (tokens[i] == "share") {
+            index = i;
+            break;
+        }
+    }
+    if (index == (int) tokens.size() - 1)
+        return -1;
+    if (index == -1) {
+        return 2;
+    } else {
+        std::string share_folder = "/";
+        for (int i = 0; i <= index; i++) {
+            share_folder += tokens[i];
+            share_folder += "/";
+        }
+        share_folder += ".share";
+        std::string folder = tokens[index + 1];
+        strcpy(share_folder_path, share_folder.c_str());
+        return check_permision(folder.c_str(), share_folder.c_str(), share_folder_path);
+    }
 }

@@ -5,8 +5,9 @@
  * Run command on server, send result to client over sockfd
  * @param sockfd: socket to send result to
  * @param cmd: command to run
+ * @param cur_dir: current directory of user
  */
-int process_command(int sockfd, char* cmd);
+int process_command(int sockfd, char* cmd, char* cur_dir);
 
 /**
  * List files in current directory
@@ -30,4 +31,7 @@ int server_share(int sockfd, char* arg, char* user_dir);
  */
 int load_shared_file(char* user_dir);
 
+int check_permision(const char* dir, const char* share_path, char* share_folder_path);
+
+int is_current_share_folder(char* dir, char* share_folder_path);
 #endif   // !__COMMAND_H__
