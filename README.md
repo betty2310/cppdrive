@@ -40,11 +40,13 @@ make
 ### Dependencies
 + [CMake](https://cmake.org/)
 + C++ Compiler: `g++`, `clang` or `msvc`
++ `zip`, `unzip`, `fd`
 
 
-In ubuntu:
+On Ubuntu:
 ```
-sudo apt-get install build-essential cmake
+sudo apt-get install build-essential cmake fd-find zip unzip libssl-dev
+ln -s $(which fdfind) ~/.local/bin/fd
 ```
 ### Visual Studio Code
 Install the following extensions:
