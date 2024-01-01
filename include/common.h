@@ -7,6 +7,12 @@
 #define ACCOUNTS_FILE "accounts.txt"
 #define APP_STORAGE   "storage/"
 
+extern const char* process;
 extern char root_dir[SIZE];
+
+extern std::string public_key;
+extern std::string private_key;
+extern std::string public_client_key;
+extern std::string public_server_key;
 
 #endif   // !__COMMON_H__

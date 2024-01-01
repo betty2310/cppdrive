@@ -11,17 +11,24 @@
 
 #include <cstring>
 #include <string>
+#include <vector>
 
 #include "authenticate.h"
 #include "command.h"
 #include "common.h"
 #include "connect.h"
+#include "crypto.h"
 #include "log.h"
 #include "message.h"
 #include "status.h"
 #include "utils.h"
 
+const char *process;
 char root_dir[SIZE];
+std::string public_key;
+std::string private_key;
+std::string public_client_key = "";
+std::string public_server_key = "";
 
 /**
  * Create cppdrive storage directory
@@ -36,6 +43,7 @@ void create_app_storage(char *dir);
 void server_handler(int sockfd);
 
 int main(int argc, char const *argv[]) {
+    process = argv[0];
     getcwd(root_dir, sizeof(root_dir));
     int socket, sockfd, pid;
     create_app_storage(root_dir);
@@ -78,6 +86,7 @@ void server_handler(int sockfd) {
     char *log_message = (char *) malloc(sizeof(char) * SIZE * 2);
 
     int logged_in = 0;
+
     do {
         Message msg;
         recv_message(sockfd, &msg);
@@ -101,6 +110,39 @@ void server_handler(int sockfd) {
                 break;
         }
     } while (!logged_in);
+
+    if (generate_key_pair(public_key, private_key)) {
+        printf("Send public key to client\n");
+        send_message(sockfd, create_message(MSG_DATA_PUBKEY, (char *) public_key.c_str()));
+        server_log('i', "Key pair generated");
+        server_log('i', public_key.c_str());
+        server_log('i', private_key.c_str());
+    } else {
+        printf("Error: Failed to generate key pair\n");
+        server_log('e', "Failed to generate key pair");
+        exit(1);
+    }
+
+    std::vector<unsigned char> encrypted;
+    std::string decrypted;
+
+    // std::string plaintext = "Hello, World!";
+    // if (encrypt_data(public_key, plaintext, encrypted)) {
+    //     for (int i = 0; i < (int) encrypted.size(); i++) {
+    //         printf("%02x", encrypted[i]);
+    //     }
+    // }
+
+    // if (decrypt_data(private_key, encrypted, decrypted)) {
+    //     printf("Decrypted: %s\n", decrypted.c_str());
+    // }
+
+    Message key;
+    recv_message(sockfd, &key);
+    std::string public_client_key_(key.payload);
+    public_client_key = public_client_key_;
+    server_log('i', "Public key received");
+    server_log('i', public_client_key.c_str());
 
     cur_user = get_username(user_dir);
     sprintf(log_message, "User %s logged in", cur_user);

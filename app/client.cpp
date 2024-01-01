@@ -13,11 +13,17 @@
 #include "command.h"
 #include "common.h"
 #include "connect.h"
+#include "crypto.h"
 #include "log.h"
 #include "utils.h"
 #include "validate.h"
 
+const char *process;
 char root_dir[SIZE];
+std::string public_key;
+std::string private_key;
+std::string public_server_key = "";
+std::string public_client_key = "";
 
 /**
  * Read command from user and store in Message struct
@@ -29,6 +35,7 @@ char root_dir[SIZE];
 int cli_read_command(char *user_input, int size, Message *msg);
 
 int main(int argc, char const *argv[]) {
+    process = argv[0];
     int sockfd;
     int data_sock;
     char user_input[SIZE];
@@ -93,6 +100,27 @@ int main(int argc, char const *argv[]) {
     }
     sprintf(log_msg, "User %s login successfully", cur_user);
     log_message('i', log_msg);
+
+    Message key;
+    recv_message(sockfd, &key);
+    std::string public_server_key_(key.payload);
+    public_server_key = public_server_key_;
+
+    log_message('i', "Received public key from server");
+    log_message('i', public_server_key.c_str());
+
+    if (generate_key_pair(public_key, private_key)) {
+        printf("Send public key to server\n");
+        send_message(sockfd, create_message(MSG_DATA_PUBKEY, (char *) public_key.c_str()));
+        log_message('i', "Key pair generated");
+        log_message('i', public_key.c_str());
+        log_message('i', private_key.c_str());
+    } else {
+        printf("Error: Failed to generate key pair\n");
+        log_message('e', "Failed to generate key pair");
+        exit(1);
+    }
+
     // begin shell
     char *user_dir = (char *) malloc(SIZE);
     strcpy(user_dir, "~/");
