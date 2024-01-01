@@ -121,7 +121,7 @@ void server_handler(int sockfd) {
             close(sockfd);
             exit(1);
         }
-        sprintf(log_message, "Connect on socket %d", sock_data);
+        sprintf(log_message, "Connect on socket data %d - fd: %d", sock_data, sockfd);
         server_log('i', log_message);
 
         switch (msg.type) {

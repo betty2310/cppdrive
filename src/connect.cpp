@@ -19,7 +19,6 @@ int send_message(int sockfd, Message msg) {
     while (nLeft > 0) {
         dataLength = send(sockfd, (char *) &msg + idx, nLeft, 0);
         if (dataLength <= 0) {
-            perror("\nError: ");
             close(sockfd);
             return -1;
         }
@@ -40,7 +39,6 @@ int recv_message(int socket, Message *msg) {
         bytes_recv = nLeft > PAYLOAD_SIZE ? PAYLOAD_SIZE : nLeft;
         ret = recv(socket, recvBuff, bytes_recv, 0);
         if (ret <= 0) {
-            perror("\nError: ");
             close(socket);
             return -1;
         }
@@ -52,10 +50,6 @@ int recv_message(int socket, Message *msg) {
     return 1;
 }
 
-/**
- * Create listening socket on remote host
- * Returns -1 on error, socket fd on success
- */
 int socket_create(int port) {
     int sockfd;
     SOCKADDR_IN sock_addr;
@@ -81,25 +75,19 @@ int socket_create(int port) {
     }
 
     // begin listening for incoming TCP requests
-    if (listen(sockfd, 5) < 0) {
-        close(sockfd);
+    if (listen(sockfd, MAX_CLIENTS) < 0) {
         perror("listen() error");
         return -1;
     }
     return sockfd;
 }
 
-/**
- * Create new socket for incoming client connection request
- * Returns -1 on error, or fd of newly created socket
- */
 int socket_accept(int sock_listen) {
     int sockfd;
     SOCKADDR_IN client_addr;
-    socklen_t len = sizeof(client_addr);   // Cast len to socklen_t*
+    socklen_t len = sizeof(client_addr);
 
-    // Wait for incoming request, store client info in client_addr
-    sockfd = accept(sock_listen, (SOCKADDR *) &client_addr, &len);   // Cast &len to socklen_t*
+    sockfd = accept(sock_listen, (SOCKADDR *) &client_addr, &len);
 
     if (sockfd < 0) {
         perror("accept() error");

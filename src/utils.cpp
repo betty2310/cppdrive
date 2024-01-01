@@ -9,6 +9,7 @@
 #include <unistd.h>
 
 #include "common.h"
+#include "log.h"
 
 std::vector<std::string> split(const std::string &s, char delim) {
     std::vector<std::string> tokens;
@@ -116,27 +117,19 @@ int process_menu(const char *menu_items[], int num_items) {
 
 char *handle_prompt(char *cur_user, char *user_dir) {
     const std::string app_name = "cppdrive";
-    std::vector<std::string> tokens;
-    std::string token;
-    std::string user_dir_str(user_dir);
-    std::istringstream tokenStream(user_dir_str);
-
-    while (getline(tokenStream, token, '/')) {
-        if (!token.empty()) {
-            tokens.push_back(token);
-        }
-    }
+    std::vector<std::string> tokens = split(std::string(user_dir), '/');
+    std::string cur_user_str(cur_user);
 
     // Find the index of cur_user in the tokens
     size_t user_index = std::string::npos;
     for (size_t i = 0; i < tokens.size(); ++i) {
-        if (tokens[i] == cur_user) {
+        if (tokens[i] == cur_user_str) {
             user_index = i;
             break;
         }
     }
 
-    char *prompt = (char *) malloc(sizeof(char) * 100);
+    char *prompt = (char *) malloc(sizeof(char) * SIZE);
     if (user_index == std::string::npos) {
         sprintf(prompt, "[%s@%s ~/]$ ", cur_user, app_name.c_str());
         return prompt;
@@ -253,5 +246,13 @@ void toggle_lock(const char *username, int lock_st) {
     remove(ACCOUNTS_FILE);
     rename("temp.txt", ACCOUNTS_FILE);
 
-    printf("User '%s' has been %s.\n", username, lock_st == 1 ? "locked" : "unlocked");
+    if (lock_st) {
+        printf("User \"%s\" logged in!\n", username);
+    } else {
+        printf("User \"%s\" logged out!\n", username);
+    }
+
+    std::string str_log_message =
+        "User " + std::string(username) + " has been " + (lock_st == 1 ? "locked" : "unlocked");
+    server_log('i', str_log_message.c_str());
 }

@@ -19,7 +19,20 @@ int send_message(int sockfd, Message msg);
  */
 int recv_message(int sockfd, Message *msg);
 
+/**
+ * Creates new socket and binds it to the specified port.
+ *
+ * @param port The port number to bind the socket to.
+ * @return The file descriptor of the created socket, or -1 if an error occurred.
+ */
 int socket_create(int port);
+
+/**
+ * Accepts a connection on a listening socket.
+ *
+ * @param sock_listen The listening socket descriptor.
+ * @return The socket descriptor for the accepted connection, or -1 if an error occurred.
+ */
 int socket_accept(int sock_listen);
 int client_start_conn(int sock_con);
 
