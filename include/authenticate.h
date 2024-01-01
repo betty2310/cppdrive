@@ -10,15 +10,17 @@ void sha256(const char *input, char *output);
 /**
  * Login to cppdrive
  * @param sockfd socket for control connection
- * @return current user logged in
+ * @param cur_user current user logged in
+ * @return 1 if authenticated, 0 if not
  */
-char *handle_login(int sockfd);
+int handle_login(int sockfd, char *cur_user);
 
 /**
  * Register new account
  * @param sockfd socket for control connection
+ * @return 1 if success, 0 if not
  */
-void register_acc(int sockfd);
+int register_acc(int sockfd);
 
 /**
  * Authenticate a user's credentials
@@ -46,10 +48,9 @@ int server_login(Message msg, char *user_dir);
 
 /**
  * server handle register new account
- * @param sockfd socket for control connection
  * @param msg message to receive
  * @return 1 if success, 0 if not
  */
-int server_register(int sockfd, Message msg);
+int server_register(Message msg);
 
 #endif

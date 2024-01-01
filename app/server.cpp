@@ -74,28 +74,30 @@ void server_handler(int sockfd) {
     char *cur_user;
     char *cur_dir = (char *) malloc(sizeof(char) * SIZE);
 
-    Message msg;
-    recv_message(sockfd, &msg);
-
-    switch (msg.type) {
-        case MSG_TYPE_AUTHEN:
-            if (server_login(msg, user_dir) == 1) {
-                send_message(sockfd, create_status_message(MSG_TYPE_OK, LOGIN_SUCCESS));
-            } else {
-                send_message(sockfd, create_status_message(MSG_TYPE_ERROR, LOGIN_FAIL));
-                exit(0);
-            }
-            break;
-        case MSG_TYPE_REGISTER:
-            if (server_register(sockfd, msg)) {
-                send_message(sockfd, create_status_message(MSG_TYPE_OK, REGISTER_SUCCESS));
-            } else {
-                exit(0);
-            }
-            break;
-        default:
-            break;
-    }
+    int logged_in = 0;
+    do {
+        Message msg;
+        recv_message(sockfd, &msg);
+        switch (msg.type) {
+            case MSG_TYPE_AUTHEN:
+                if (server_login(msg, user_dir) == 1) {
+                    send_message(sockfd, create_status_message(MSG_TYPE_OK, LOGIN_SUCCESS));
+                    logged_in = 1;
+                } else {
+                    send_message(sockfd, create_status_message(MSG_TYPE_ERROR, LOGIN_FAIL));
+                }
+                break;
+            case MSG_TYPE_REGISTER:
+                if (server_register(msg)) {
+                    send_message(sockfd, create_status_message(MSG_TYPE_OK, NO));
+                } else {
+                    send_message(sockfd, create_status_message(MSG_TYPE_ERROR, USERNAME_EXIST));
+                }
+                break;
+            default:
+                break;
+        }
+    } while (!logged_in);
 
     cur_user = get_username(user_dir);
     char *log = (char *) malloc(sizeof(char) * 100);

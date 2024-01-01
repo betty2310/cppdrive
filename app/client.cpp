@@ -32,7 +32,7 @@ int main(int argc, char const *argv[]) {
     int sockfd;
     int data_sock;
     char user_input[SIZE];
-    char *cur_user;
+    char *cur_user = (char *) malloc(sizeof(char) * SIZE);
 
     if (argc != 3) {
         printf("Usage: %s <ip_adress> <port>\n", argv[0]);
@@ -67,22 +67,29 @@ int main(int argc, char const *argv[]) {
     const char *menu_items[] = {"Login", "Register", "Exit"};
 
     int choice = process_menu(menu_items, 3);
+    int fl = 1;
     switch (choice) {
         case 0:
-            print_centered("Login to cppdrive");
-            cur_user = handle_login(sockfd);
+            do {
+                print_centered("Login to cppdrive");
+                fl = handle_login(sockfd, cur_user);
+            } while (!fl);
             break;
         case 1:
-            print_centered("Register new account");
-            register_acc(sockfd);
-            print_centered("Login to cppdrive");
-            cur_user = handle_login(sockfd);
+            do {
+                print_centered("Register new account");
+                fl = register_acc(sockfd);
+            } while (!fl);
+            do {
+                print_centered("Login to cppdrive");
+                fl = handle_login(sockfd, cur_user);
+            } while (!fl);
             break;
         case 2:
             print_centered("Good bye!");
             exit(0);
+            break;
     }
-
     // begin shell
     char *user_dir = (char *) malloc(SIZE);
     strcpy(user_dir, "~/");
@@ -198,6 +205,7 @@ int main(int argc, char const *argv[]) {
 
     }   // loop back to get more user input
 
+    free(cur_user);
     // Close the socket (control connection)
     close(sockfd);
     return 0;

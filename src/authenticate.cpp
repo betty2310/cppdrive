@@ -59,9 +59,8 @@ char *get_acc_from_cli() {
     return payload;
 }
 
-char *handle_login(int sockfd) {
+int handle_login(int sockfd, char *cur_user) {
     Message msg;
-
     char *payload = (char *) malloc(PAYLOAD_SIZE);
     memset(payload, 0, PAYLOAD_SIZE);
     payload = get_acc_from_cli();
@@ -75,19 +74,19 @@ char *handle_login(int sockfd) {
     switch (response.type) {
         case MSG_TYPE_ERROR:
             printf("%s\n", response.payload);
-            exit(0);
+            return 0;
         case MSG_TYPE_OK:
             printf("%s\n", response.payload);
-            break;
+            strcpy(cur_user, strtok(payload, " "));
+            return 1;
         default:
             perror("error reading message from server");
-            exit(1);
-            break;
+            return 0;
     }
-    return strtok(payload, " ");
+    return 1;
 }
 
-void register_acc(int sockfd) {
+int register_acc(int sockfd) {
     Message msg;
     char *payload = (char *) malloc(PAYLOAD_SIZE);
     memset(payload, 0, PAYLOAD_SIZE);
@@ -102,13 +101,13 @@ void register_acc(int sockfd) {
     switch (response.type) {
         case MSG_TYPE_ERROR:
             printf("%s\n", response.payload);
-            exit(0);
+            return 0;
         case MSG_TYPE_OK:
             printf("%s\n", response.payload);
-            break;
+            return 1;
         default:
             perror("error reading message from server");
-            exit(1);
+            return 0;
             break;
     }
 }
@@ -223,7 +222,7 @@ int server_login(Message msg, char *user_dir) {
     return (check_user_acc(user, pass, user_dir));
 }
 
-int server_register(int sock_control, Message msg) {
+int server_register(Message msg) {
     char buf[SIZE];
     char user[SIZE];
     char pass[SIZE];
@@ -236,23 +235,8 @@ int server_register(int sock_control, Message msg) {
     strcpy(user, strtok(buf, " "));
     strcpy(pass, strtok(NULL, " "));
 
-    Status status;
-    while (check_username(user)) {
-        status = USERNAME_EXIST;
-        Message response = create_status_message(MSG_TYPE_ERROR, status);
-        send_message(sock_control, response);
-        // Wait to receive username
-        if ((recv_data(sock_control, buf, sizeof(buf))) == -1) {
-            perror("recv error\n");
-            exit(1);
-        }
-        memset(user, 0, SIZE);
-        memset(pass, 0, SIZE);
-        memset(buf, 0, SIZE);
-
-        strcpy(buf, msg.payload);
-        strcpy(user, strtok(buf, " "));
-        strcpy(pass, strtok(NULL, " "));
+    if (check_username(user)) {
+        return 0;
     }
 
     FILE *fp;
@@ -275,7 +259,6 @@ int server_register(int sock_control, Message msg) {
     strcat(user_storage, "/.share");
     FILE *share = fopen(user_storage, "w");
     fclose(share);
-
     fclose(fp);
     return 1;
 }
