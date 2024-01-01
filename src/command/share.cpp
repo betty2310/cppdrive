@@ -8,6 +8,7 @@
 #include "command.h"
 #include "common.h"
 #include "connect.h"
+#include "log.h"
 #include "validate.h"
 
 int parse_string(std::string& input, int& mode, std::vector<std::string>& users,
@@ -51,9 +52,13 @@ int server_share(int sockfd, char* arg, char* user_dir) {
     int mode;
     std::vector<std::string> users, files;
     if (parse_string(args, mode, users, files) < 0) {
+        std::string error_msg = "Parser share command error!";
+        server_log('e', error_msg.c_str());
         send_message(sockfd, create_status_message(MSG_TYPE_ERROR, STATUS_SHARECMD_ERROR));
         return -1;
     } else {
+        std::string success_msg = "Parser share command success!";
+        server_log('i', success_msg.c_str());
         send_message(sockfd, create_status_message(MSG_TYPE_OK, NO));
     }
     bool is_file_valid = true;
@@ -67,6 +72,7 @@ int server_share(int sockfd, char* arg, char* user_dir) {
     if (!is_file_valid) {
         char* error_msg = (char*) malloc(sizeof(char) * SIZE);
         strcpy(error_msg, "Some files or directories are not valid, please check again!");
+        server_log('e', error_msg);
         send_message(sockfd, create_message(MSG_TYPE_ERROR, error_msg));
         return -1;
     } else {
@@ -80,13 +86,15 @@ int server_share(int sockfd, char* arg, char* user_dir) {
     for (const auto& file : files) {
         std::string path = current_dir + "/" + file;
         for (const auto& user : users) {
-            std::string user_dir = root_path + "/user/" + user;
+            std::string user_dir = root_path + "/" + APP_STORAGE + user;
             std::string share_path = user_dir + "/share/.share";
             FILE* fp = fopen(share_path.c_str(), "a");
             if (fp == NULL) {
                 continue;
             }
             fprintf(fp, "%s %d\n", path.c_str(), mode);
+            std::string str_log_message = "Write " + path + " to " + share_path;
+            server_log('i', str_log_message.c_str());
             fclose(fp);
         }
     }

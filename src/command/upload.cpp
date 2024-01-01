@@ -33,11 +33,14 @@ void handle_upload(int sock_data, char *dir, int sock_control) {
     dir = handle_path(dir);
     char compress_folder[SIZE];
     int fl = is_folder(dir);
+    std::string str_log_message = fl ? "Uploading folder " : "Uploading file ";
 
     Message msg;
     recv_message(sock_control, &msg);
     if (msg.type == MSG_TYPE_ERROR) {
         printf(ANSI_COLOR_YELLOW "%s" ANSI_RESET "\n", msg.payload);
+        std::string str_payload(msg.payload);
+        log_message('e', str_payload.c_str());
         return;
     }
 
@@ -53,15 +56,19 @@ void handle_upload(int sock_data, char *dir, int sock_control) {
     } else
         send_message(sock_control, create_status_message(MSG_TYPE_DOWNLOAD_FILE, NO));
 
+    std::string str_dir(dir);
+    str_log_message += str_dir;
     FILE *fp = fopen(dir, "r");
     if (!fp) {
         send_message(sock_control, create_status_message(MSG_TYPE_ERROR, FILE_NOT_FOUND));
         perror(ANSI_COLOR_RED "error opening file" ANSI_RESET);
-        server_log('e', "File not found");
+        str_log_message = str_dir + " not found";
+        log_message('e', str_log_message.c_str());
     } else {
         send_message(sock_control, create_status_message(MSG_TYPE_OK, NO));
         printf("Uploading file %s to server!\n", dir);
-        server_log('i', "Sending file");
+        str_log_message = "Uploading file " + str_dir + " to server!";
+        log_message('i', str_log_message.c_str());
         size_t byte_read;
 
         Message data;
@@ -75,7 +82,8 @@ void handle_upload(int sock_data, char *dir, int sock_control) {
         } while (byte_read > 0);
 
         send_message(sock_data, create_status_message(MSG_TYPE_OK, NO));
-        server_log('i', "File sent");
+        str_log_message = "File " + str_dir + " uploaded";
+        log_message('i', str_log_message.c_str());
         fclose(fp);
         if (fl) {
             remove(compress_folder);
@@ -104,9 +112,12 @@ int _upload(int sock_control, int data_sock, char *arg, char *cur_dir) {
     strcat(path, "/");
     strcat(path, last_past);
 
+    std::string str_path(path);
     FILE *fp = fopen(path, "w");
     if (!fp) {
         perror(ANSI_COLOR_RED "ERROR opening file" ANSI_RESET);
+        std::string str_log_message = "ERROR opening file " + str_path;
+        server_log('e', str_log_message.c_str());
         return -1;
     }
 
@@ -128,7 +139,6 @@ int _upload(int sock_control, int data_sock, char *arg, char *cur_dir) {
         sprintf(log_msg, "File uploaded to %s", path);
     }
     server_log('i', log_msg);
-    printf("%s\n", log_msg);
     free(log_msg);
     fclose(fp);
     if (!is_file) {
@@ -146,10 +156,15 @@ int server_upload(int sock_control, int data_sock, char *arg, char *cur_dir) {
     int share_mode = is_current_share_folder(cur_dir, share_folder_path);
     if (share_mode == -1) {
         char error_msg[] = "You should not upload file to share folder";
+        std::string str_error_msg = "In share folder, should not upload file";
+        server_log('w', str_error_msg.c_str());
         send_message(sock_control, create_message(MSG_TYPE_ERROR, error_msg));
         return -1;
     } else if (share_mode == 0) {
         char error_msg[] = "Error: You don't have permission to access this folder!";
+        std::string str_error_msg =
+            "In folder that don't have permission to access, should not upload file";
+        server_log('e', str_error_msg.c_str());
         send_message(sock_control, create_message(MSG_TYPE_ERROR, error_msg));
         return -1;
     } else if (share_mode == 2) {

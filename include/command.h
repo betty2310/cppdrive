@@ -11,8 +11,14 @@
  */
 int process_command(int sockfd, char* cmd, char* cur_dir);
 
-// Function to check if a directory is a subdirectory of the base directory
-int is_subdir(const char* baseDir, const char* dir);
+/**
+ * Check if directory is subdirectory of base_dir
+ * @param base_dir: base directory
+ * @param dir: directory to check
+ * @return 1 if true, 0 if false
+ */
+int is_subdir(const char* base_dir, const char* dir);
+
 /**
  * Change directory
  * Return -1 on error, 0 on success

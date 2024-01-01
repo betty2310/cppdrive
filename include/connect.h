@@ -23,7 +23,6 @@ int socket_create(int port);
 int socket_accept(int sock_listen);
 int client_start_conn(int sock_con);
 
-int recv_data(int sockfd, char *buf, int bufsize);
 int socket_connect(int port, char *host);
 int server_start_conn(int sock_control);
 

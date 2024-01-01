@@ -7,6 +7,7 @@
 #include "command.h"
 #include "common.h"
 #include "connect.h"
+#include "log.h"
 #include "message.h"
 #include "status.h"
 
@@ -27,9 +28,15 @@ int server_cd(int sockfd, char *dir, char *user_dir, char *cur_user_dir) {
         if (!is_subdir(user_dir, cur_dir)) {
             chdir(prev_dir);
             strcpy(cur_user_dir, prev_dir);
+            std::string str_cur_dir(prev_dir);
+            std::string str_log_message = "Change directory to " + str_cur_dir;
+            server_log('i', str_log_message.c_str());
             send_message(sockfd, create_status_message(MSG_TYPE_ERROR, DIRECTORY_NOT_FOUND));
         } else {
             strcpy(cur_user_dir, cur_dir);
+            std::string str_cur_dir(cur_dir);
+            std::string str_log_message = "Change directory to " + str_cur_dir;
+            server_log('i', str_log_message.c_str());
             send_message(sockfd, create_message(MSG_DATA_CD, cur_dir));
         }
     } else {

@@ -6,11 +6,13 @@
 
 #include <cstdlib>
 #include <cstring>
+#include <string>
 
 #include "color.h"
 #include "command.h"
 #include "common.h"
 #include "connect.h"
+#include "log.h"
 
 int handle_list(int sock_data) {
     Message msg;
@@ -45,6 +47,10 @@ int server_list(int sockfd) {
     memset(payload, 0, SIZE);
 
     getcwd(curr_dir, sizeof(curr_dir));
+    std::string str_curr_dir(curr_dir);
+    std::string str_log_message = "List directory " + str_curr_dir;
+    server_log('i', str_log_message.c_str());
+
     int n = scandir(curr_dir, &output, NULL, compare);
     for (int i = 0; i < n; i++) {
         if (strcmp(output[i]->d_name, ".") != 0 && strcmp(output[i]->d_name, "..") != 0 &&
@@ -52,10 +58,17 @@ int server_list(int sockfd) {
             struct stat s;
             if (stat(output[i]->d_name, &s) == 0) {
                 if (s.st_mode & S_IFDIR) {
-                    strcat(payload, ANSI_BOLD);
-                    strcat(payload, ANSI_COLOR_CYAN);
-                    strcat(payload, output[i]->d_name);
-                    strcat(payload, ANSI_RESET);
+                    if (strcmp(output[i]->d_name, "share") == 0) {
+                        strcat(payload, ANSI_BOLD);
+                        strcat(payload, ANSI_COLOR_MAGENTA);
+                        strcat(payload, output[i]->d_name);
+                        strcat(payload, ANSI_RESET);
+                    } else {
+                        strcat(payload, ANSI_BOLD);
+                        strcat(payload, ANSI_COLOR_CYAN);
+                        strcat(payload, output[i]->d_name);
+                        strcat(payload, ANSI_RESET);
+                    }
                 } else if (s.st_mode & S_IFREG) {
                     strcat(payload, output[i]->d_name);
                 }

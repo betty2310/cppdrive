@@ -33,6 +33,7 @@ int main(int argc, char const *argv[]) {
     int data_sock;
     char user_input[SIZE];
     char *cur_user = (char *) malloc(sizeof(char) * SIZE);
+    char *log_msg = (char *) malloc(sizeof(char) * SIZE * 2);
 
     if (argc != 3) {
         printf("Usage: %s <ip_adress> <port>\n", argv[0]);
@@ -90,6 +91,8 @@ int main(int argc, char const *argv[]) {
             exit(0);
             break;
     }
+    sprintf(log_msg, "User %s login successfully", cur_user);
+    log_message('i', log_msg);
     // begin shell
     char *user_dir = (char *) malloc(SIZE);
     strcpy(user_dir, "~/");
@@ -105,11 +108,16 @@ int main(int argc, char const *argv[]) {
         int fl = cli_read_command(user_input, sizeof(user_input), &command);
         if (fl == -1) {
             printf("Invalid command\n");
-            // next loop
+            sprintf(log_msg, "User %s enter invalid command", cur_user);
+            log_message('e', log_msg);
             continue;
         }
+        sprintf(log_msg, "User %s enter command: %s", cur_user, user_input);
+        log_message('i', log_msg);
         // Send command to server
         if (send_message(sockfd, command) < 0) {
+            sprintf(log_msg, "User %s send command failed", cur_user);
+            log_message('e', log_msg);
             close(sockfd);
             exit(1);
         }
@@ -122,6 +130,8 @@ int main(int argc, char const *argv[]) {
 
         // execute command
         if (command.type == MSG_TYPE_QUIT) {
+            sprintf(log_msg, "User %s exit", cur_user);
+            log_message('i', log_msg);
             printf("Goodbye.\n");
             break;
         } else if (command.type == MSG_TYPE_LS) {
@@ -130,16 +140,22 @@ int main(int argc, char const *argv[]) {
             Message response;
             recv_message(sockfd, &response);
             if (response.type == MSG_TYPE_ERROR) {
+                sprintf(log_msg, "Command output: %s", response.payload);
+                log_message('w', log_msg);
                 printf(ANSI_COLOR_YELLOW "%s" ANSI_RESET "\n", response.payload);
                 continue;
             }
             while (1) {
                 recv_message(sockfd, &response);
-                if (response.type == MSG_TYPE_ERROR)
+                if (response.type == MSG_TYPE_ERROR) {
+                    sprintf(log_msg, "Command output: %s", response.payload);
+                    log_message('e', log_msg);
                     printf("%s\n", response.payload);
-                else if (response.type == MSG_DATA_CMD) {
+                } else if (response.type == MSG_DATA_CMD) {
                     printf("%s", response.payload);
                 } else {
+                    sprintf(log_msg, "Command run sucessfully");
+                    log_message('i', log_msg);
                     break;
                 }
             }
@@ -148,10 +164,14 @@ int main(int argc, char const *argv[]) {
             recv_message(sockfd, &response);
             switch (response.type) {
                 case MSG_DATA_CD:
+                    sprintf(log_msg, "Command output: %s", response.payload);
+                    log_message('i', log_msg);
                     strcpy(user_dir, response.payload);
                     break;
                 case MSG_TYPE_ERROR:
                     printf("%s\n", response.payload);
+                    sprintf(log_msg, "Command output: %s", response.payload);
+                    log_message('e', log_msg);
                     break;
                 default:
                     break;
@@ -183,14 +203,20 @@ int main(int argc, char const *argv[]) {
             recv_message(sockfd, &response);
             if (response.type == MSG_TYPE_ERROR) {
                 printf("%s\n", response.payload);
+                sprintf(log_msg, "Command output: %s", response.payload);
+                log_message('e', log_msg);
                 continue;
             } else {
                 recv_message(sockfd, &response);
                 if (response.type == MSG_TYPE_ERROR) {
                     printf("%s\n", response.payload);
+                    sprintf(log_msg, "Command output: %s", response.payload);
+                    log_message('e', log_msg);
                     continue;
                 } else {
                     printf("Shared sucessfully!\n");
+                    sprintf(log_msg, "Share command sucessfully");
+                    log_message('i', log_msg);
                 }
             }
 
@@ -206,6 +232,7 @@ int main(int argc, char const *argv[]) {
     }   // loop back to get more user input
 
     free(cur_user);
+    free(log_msg);
     // Close the socket (control connection)
     close(sockfd);
     return 0;

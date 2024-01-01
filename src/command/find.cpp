@@ -8,6 +8,7 @@
 #include "command.h"
 #include "common.h"
 #include "connect.h"
+#include "log.h"
 #include "message.h"
 #include "utils.h"
 
@@ -24,6 +25,7 @@ int server_find(int sockfd, char *arg) {
     snprintf(full_cmd, sizeof(full_cmd), "fd %s", arg);
     std::string cmd(full_cmd);
     std::string left_cmd, right_cmd;
+    server_log('i', cmd.c_str());
 
     size_t pos = cmd.find('|');
     if (pos != std::string::npos) {
@@ -34,6 +36,8 @@ int server_find(int sockfd, char *arg) {
 
         left_cmd.erase(left_cmd.find_last_not_of(" \n\r\t") + 1);
         right_cmd.erase(0, right_cmd.find_first_not_of(" \n\r\t"));
+        std::string str_log_message = "Pipe command: " + left_cmd + " | " + right_cmd;
+        server_log('i', str_log_message.c_str());
     } else {
         left_cmd = cmd;
     }

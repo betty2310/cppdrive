@@ -127,20 +127,6 @@ int client_start_conn(int sock_con) {
 }
 
 /**
- * Receive data on sockfd
- * Returns -1 on error, number of bytes received
- * on success
- */
-int recv_data(int sockfd, char *buf, int bufsize) {
-    memset(buf, 0, bufsize);
-    int num_bytes = recv(sockfd, buf, bufsize, 0);
-    if (num_bytes < 0) {
-        return -1;
-    }
-    return num_bytes;
-}
-
-/**
  * Connect to remote host at given port
  * Returns:	socket fd on success, -1 on error
  */

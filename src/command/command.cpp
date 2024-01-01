@@ -63,6 +63,7 @@ int _process_command(int sockfd, char *base_cmd) {
     char *cmd_output = get_cmd_output(base_cmd);
     // we want slient mode
     snprintf(cmd, sizeof(cmd), "%s > /dev/null 2>&1", base_cmd);
+    server_log('i', cmd);
     int res = system(cmd);
     char *msg_log = (char *) malloc(SIZE);
     if (res == -1) {
@@ -98,10 +99,12 @@ int process_command(int sockfd, char *base_cmd, char *cur_dir) {
     int share_mode = is_current_share_folder(cur_dir, share_folder_path);
     if (share_mode == -1) {
         char err_msg[] = "You shouldn't modify files in the share folder.";
+        server_log('w', err_msg);
         send_message(sockfd, create_message(MSG_TYPE_ERROR, err_msg));
         return -1;
     } else if (share_mode == 0) {
         char err_msg[] = "You do not have permission to modify this folder.";
+        server_log('e', err_msg);
         send_message(sockfd, create_message(MSG_TYPE_ERROR, err_msg));
         return -1;
     } else if (share_mode == 2) {
@@ -114,8 +117,10 @@ int process_command(int sockfd, char *base_cmd, char *cur_dir) {
         std::string share_path(share_folder_path);
         std::string rm_cmd = "rm -rf " + share_path + "/*";
         system(rm_cmd.c_str());
+        server_log('i', rm_cmd.c_str());
         std::string cp_cmd = "cp -r " + user_path + "/* " + share_path;
         system(cp_cmd.c_str());
+        server_log('i', cp_cmd.c_str());
     }
     return 0;
 }

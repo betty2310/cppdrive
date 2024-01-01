@@ -10,4 +10,4 @@
 #define ANSI_RESET         "\033[0m"
 #define ANSI_BOLD          "\033[1m"
 
-#endif   // !__COLO
+#endif   // !__COLOR_H__

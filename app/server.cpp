@@ -59,7 +59,9 @@ int main(int argc, char const *argv[]) {
             printf("Error: fork() failed\n");
             server_log('e', "fork() failed");
         } else if (pid == 0) {
+            server_log('i', "Connection accepted");
             server_handler(sockfd);
+            server_log('i', "Connection closed");
             exit(0);
         }
         close(sockfd);
@@ -73,6 +75,7 @@ void server_handler(int sockfd) {
     char user_dir[SIZE] = APP_STORAGE;
     char *cur_user;
     char *cur_dir = (char *) malloc(sizeof(char) * SIZE);
+    char *log_message = (char *) malloc(sizeof(char) * SIZE * 2);
 
     int logged_in = 0;
     do {
@@ -100,13 +103,11 @@ void server_handler(int sockfd) {
     } while (!logged_in);
 
     cur_user = get_username(user_dir);
-    char *log = (char *) malloc(sizeof(char) * 100);
-    sprintf(log, "User %s logged in", cur_user);
-    server_log('i', log);
+    sprintf(log_message, "User %s logged in", cur_user);
+    server_log('i', log_message);
     strcpy(cur_dir, user_dir);
     load_shared_file(user_dir);
     while (1) {
-        // TODO: handle relogin case
         Message msg;
         int st = recv_message(sockfd, &msg);
 
@@ -115,9 +116,13 @@ void server_handler(int sockfd) {
         }
         // Open data connection with client
         if ((sock_data = server_start_conn(sockfd)) < 0) {
+            sprintf(log_message, "Error: Failed to open data connection with client");
+            server_log('e', log_message);
             close(sockfd);
             exit(1);
         }
+        sprintf(log_message, "Connect on socket %d", sock_data);
+        server_log('i', log_message);
 
         switch (msg.type) {
             case MSG_TYPE_LS:
