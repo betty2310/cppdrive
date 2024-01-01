@@ -113,15 +113,11 @@ void register_acc(int sockfd) {
     }
 }
 
-/**
- * Authenticate a user's credentials
- * Return 1 if authenticated, 0 if not
- */
-int ftserve_check_user(char *user, char *pass, char *user_dir) {
+int check_user_acc(char *user, char *pass, char *user_dir) {
     char username[SIZE];
     char password[SIZE];
-    char curDir[SIZE];
-    int isLock;
+    char cur_dir[SIZE];
+    int is_locked;
     char *pch;
     char buf[SIZE];
     char *line = NULL;
@@ -130,9 +126,9 @@ int ftserve_check_user(char *user, char *pass, char *user_dir) {
     FILE *fd;
     int auth = 0;
 
-    fd = fopen(AUTH_FILE, "r");
+    fd = fopen(ACCOUNTS_FILE, "r");
     if (fd == NULL) {
-        perror("file not found");
+        perror("Error: ");
         exit(1);
     }
 
@@ -148,7 +144,7 @@ int ftserve_check_user(char *user, char *pass, char *user_dir) {
             strcpy(password, pch);
             pch = strtok(NULL, " ");
             trimstr(pch, (int) strlen(pch));
-            isLock = atoi(pch);
+            is_locked = atoi(pch);
         }
 
         // remove end of line and whitespace
@@ -157,9 +153,9 @@ int ftserve_check_user(char *user, char *pass, char *user_dir) {
         char outputBuffer[65];
         sha256(pass, outputBuffer);
 
-        // printf("%d %d %d\n", strcmp(user, username), strcmp(outputBuffer, password), isLock);
+        // printf("%d %d %d\n", strcmp(user, username), strcmp(outputBuffer, password), is_locked);
         if ((strcmp(user, username) == 0) &&
-            (strcmp(outputBuffer, password) == 0 && (isLock == 0))) {
+            (strcmp(outputBuffer, password) == 0 && (is_locked == 0))) {
             auth = 1;
             // Lock user to prevent concurrent login
             toggle_lock(user, 1);
@@ -169,8 +165,8 @@ int ftserve_check_user(char *user, char *pass, char *user_dir) {
             chdir(user_dir);
 
             // Save user root dir to a global variable for future use
-            getcwd(curDir, sizeof(curDir));
-            strcpy(user_dir, curDir);
+            getcwd(cur_dir, sizeof(cur_dir));
+            strcpy(user_dir, cur_dir);
             break;
         }
     }
@@ -179,10 +175,6 @@ int ftserve_check_user(char *user, char *pass, char *user_dir) {
     return auth;
 }
 
-/**
- * Check if username exist
- * @return 1 if authenticated, 0 if not
- */
 int check_username(char *user) {
     char username[SIZE];
     char *pch;
@@ -193,9 +185,9 @@ int check_username(char *user) {
     FILE *fd;
     int check = 0;
 
-    fd = fopen(".auth", "r");
+    fd = fopen(ACCOUNTS_FILE, "r");
     if (fd == NULL) {
-        perror("file not found");
+        perror("Error: ");
         exit(1);
     }
 
@@ -228,14 +220,14 @@ int server_login(Message msg, char *user_dir) {
     strcpy(user, strtok(buf, " "));
     strcpy(pass, strtok(NULL, " "));
 
-    return (ftserve_check_user(user, pass, user_dir));
+    return (check_user_acc(user, pass, user_dir));
 }
 
 int server_register(int sock_control, Message msg) {
     char buf[SIZE];
     char user[SIZE];
     char pass[SIZE];
-    char user_storage[SIZE] = "user/";
+    char user_storage[SIZE] = APP_STORAGE;
     memset(user, 0, SIZE);
     memset(pass, 0, SIZE);
     memset(buf, 0, SIZE);
@@ -265,9 +257,9 @@ int server_register(int sock_control, Message msg) {
 
     FILE *fp;
 
-    fp = fopen(AUTH_FILE, "a");
+    fp = fopen(ACCOUNTS_FILE, "a");
     if (fp == NULL) {
-        perror("AUTH_FILE not found");
+        perror("Error: ");
         exit(1);
     }
     fprintf(fp, "%s ", user);
@@ -277,7 +269,7 @@ int server_register(int sock_control, Message msg) {
 
     // Create storage directory for new user
     strcat(user_storage, user);
-    create_user_storage(user_storage);
+    create_dir(user_storage);
     strcat(user_storage, "/share");
     mkdir(user_storage, 0777);
     strcat(user_storage, "/.share");

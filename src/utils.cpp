@@ -186,63 +186,72 @@ void read_input(char *user_input, int size) {
         user_input[n - 1] = '\0';
 }
 
-int create_user_storage(const char *path) {
+int create_dir(const char *path) {
     int status = 0;
+    struct stat st;
+
+    if (stat(path, &st) == 0 && S_ISDIR(st.st_mode)) {
+        return 0;
+    }
     status = mkdir(path, 0755);
 
     if (status == 0) {
-        printf("Directory %s created successfully.\n", path);
         return 0;
     } else {
-        perror("Error creating directory");
+        perror("Error");
         return -1;
     }
 }
 
-void toggle_lock(const char *username, int lockStatus) {
-    // Open the .auth file in read mode
-    FILE *file = fopen(AUTH_FILE, "r");
-
-    // Check if the file opened successfully
+int create_file(const char *filepath) {
+    struct stat st;
+    if (stat(filepath, &st) == 0) {
+        return 0;
+    }
+    FILE *file = fopen(filepath, "a");
     if (file == NULL) {
-        printf("Error opening file!\n");
+        perror("Error creating file");
+        return -1;
+    }
+    fclose(file);
+    return 0;
+}
+
+void toggle_lock(const char *username, int lock_st) {
+    FILE *fp = fopen(ACCOUNTS_FILE, "r");
+
+    if (fp == NULL) {
+        perror("Error account file: ");
         return;
     }
 
-    // Temporary variables to store data read from the file
+    // we create a temporary file to store the updated data
+    // then delete the original file and rename the temporary file to the original file
     char currentUsername[100];
     char password[100];
     int isLocked;
 
-    // Create a temporary file to store updated information
-    FILE *tempFile = fopen("temp.auth", "w");
+    FILE *temp = fopen("temp.txt", "w");
 
-    // Check if the temporary file opened successfully
-    if (tempFile == NULL) {
+    if (temp == NULL) {
         printf("Error creating temporary file!\n");
-        fclose(file);
+        fclose(fp);
         return;
     }
 
-    // Read lines from the .auth file
-    while (fscanf(file, "%s %s %d", currentUsername, password, &isLocked) == 3) {
-        // Check if the current line corresponds to the given username
+    while (fscanf(fp, "%s %s %d", currentUsername, password, &isLocked) == 3) {
         if (strcmp(currentUsername, username) == 0) {
-            // Update the lock status
-            fprintf(tempFile, "%s %s %d\n", currentUsername, password, lockStatus);
+            fprintf(temp, "%s %s %d\n", currentUsername, password, lock_st);
         } else {
-            // Copy the line as is to the temporary file
-            fprintf(tempFile, "%s %s %d\n", currentUsername, password, isLocked);
+            fprintf(temp, "%s %s %d\n", currentUsername, password, isLocked);
         }
     }
 
-    // Close both files
-    fclose(file);
-    fclose(tempFile);
+    fclose(fp);
+    fclose(temp);
 
-    // Replace the original .auth file with the temporary file
-    remove(".auth");
-    rename("temp.auth", ".auth");
+    remove(ACCOUNTS_FILE);
+    rename("temp.txt", ACCOUNTS_FILE);
 
-    printf("User '%s' has been %s.\n", username, lockStatus == 1 ? "locked" : "unlocked");
+    printf("User '%s' has been %s.\n", username, lock_st == 1 ? "locked" : "unlocked");
 }

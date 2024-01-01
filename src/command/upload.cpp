@@ -41,7 +41,6 @@ void handle_upload(int sock_data, char *dir, int sock_control) {
         return;
     }
 
-    printf("Uploading file %s to server!\n", dir);
     if (is_folder(dir)) {
         strcpy(compress_folder, dir);
         char *last_past = basename(compress_folder);
@@ -55,16 +54,13 @@ void handle_upload(int sock_data, char *dir, int sock_control) {
         send_message(sock_control, create_status_message(MSG_TYPE_DOWNLOAD_FILE, NO));
 
     FILE *fp = fopen(dir, "r");
-    if (fp == NULL) {
-        perror("error opening file\n");
-        return;
-    }
-
     if (!fp) {
         send_message(sock_control, create_status_message(MSG_TYPE_ERROR, FILE_NOT_FOUND));
+        perror(ANSI_COLOR_RED "error opening file" ANSI_RESET);
         server_log('e', "File not found");
     } else {
         send_message(sock_control, create_status_message(MSG_TYPE_OK, NO));
+        printf("Uploading file %s to server!\n", dir);
         server_log('i', "Sending file");
         size_t byte_read;
 

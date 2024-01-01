@@ -24,7 +24,14 @@ char *get_username(char *path);
  * @param path path to user storage
  * @return 0 if success, -1 if error
  */
-int create_user_storage(const char *path);
+int create_dir(const char *path);
+
+/**
+ * create file if not exist
+ * @param path path to file
+ * @return 0 if success, -1 if error
+ */
+int create_file(const char *path);
 
 // Function to lock or unlock a user in the .auth file (0 for unlock, 1 for lock)
 void toggle_lock(const char *username, int lockStatus);

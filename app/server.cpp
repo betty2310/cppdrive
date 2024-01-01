@@ -3,12 +3,14 @@
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
+
+#include <cstring>
+#include <string>
 
 #include "authenticate.h"
 #include "command.h"
@@ -21,12 +23,22 @@
 
 char root_dir[SIZE];
 
-void ftserve_process(int sockfd);
+/**
+ * Create cppdrive storage directory
+ * @param dir root directory
+ */
+void create_app_storage(char *dir);
+
+/**
+ * Handle client connection
+ * @param sockfd socket for control connection
+ */
+void server_handler(int sockfd);
 
 int main(int argc, char const *argv[]) {
     getcwd(root_dir, sizeof(root_dir));
     int socket, sockfd, pid;
-
+    create_app_storage(root_dir);
     if (argc != 2) {
         printf("Usage: %s <port>\n", argv[0]);
         exit(0);
@@ -47,7 +59,7 @@ int main(int argc, char const *argv[]) {
             printf("Error: fork() failed\n");
             server_log('e', "fork() failed");
         } else if (pid == 0) {
-            ftserve_process(sockfd);
+            server_handler(sockfd);
             exit(0);
         }
         close(sockfd);
@@ -56,9 +68,9 @@ int main(int argc, char const *argv[]) {
     return 0;
 }
 
-void ftserve_process(int sockfd) {
+void server_handler(int sockfd) {
     int sock_data;
-    char user_dir[SIZE] = "user/";
+    char user_dir[SIZE] = APP_STORAGE;
     char *cur_user;
     char *cur_dir = (char *) malloc(sizeof(char) * SIZE);
 
@@ -67,24 +79,16 @@ void ftserve_process(int sockfd) {
 
     switch (msg.type) {
         case MSG_TYPE_AUTHEN:
-            Message response;
-            Status status;
             if (server_login(msg, user_dir) == 1) {
-                status = LOGIN_SUCCESS;
-                response = create_status_message(MSG_TYPE_OK, status);
-                send_message(sockfd, response);
+                send_message(sockfd, create_status_message(MSG_TYPE_OK, LOGIN_SUCCESS));
             } else {
-                status = LOGIN_FAIL;
-                response = create_status_message(MSG_TYPE_ERROR, status);
-                send_message(sockfd, response);
+                send_message(sockfd, create_status_message(MSG_TYPE_ERROR, LOGIN_FAIL));
                 exit(0);
             }
             break;
         case MSG_TYPE_REGISTER:
             if (server_register(sockfd, msg)) {
-                status = REGISTER_SUCCESS;
-                response = create_status_message(MSG_TYPE_OK, status);
-                send_message(sockfd, response);
+                send_message(sockfd, create_status_message(MSG_TYPE_OK, REGISTER_SUCCESS));
             } else {
                 exit(0);
             }
@@ -149,4 +153,13 @@ void ftserve_process(int sockfd) {
         }
         close(sock_data);
     }
+}
+
+void create_app_storage(char *dir) {
+    std::string path(dir);
+    path += "/";
+    std::string storage_path = path + APP_STORAGE;
+    std::string accounts_pah = path + ACCOUNTS_FILE;
+    create_dir(storage_path.c_str());
+    create_file(accounts_pah.c_str());
 }

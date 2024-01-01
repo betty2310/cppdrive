@@ -5,7 +5,8 @@
 #define INVALID_SOCKET -1
 #define PORT           9000
 #define DEFAULT_PORT   3001
-#define AUTH_FILE      ".auth"
+#define ACCOUNTS_FILE  "accounts.txt"
+#define APP_STORAGE    "storage/"
 
 typedef struct sockaddr_in SOCKADDR_IN;
 typedef struct sockaddr SOCKADDR;
