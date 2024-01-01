@@ -1,231 +1,288 @@
 #include <arpa/inet.h>
-#include <errno.h>
-#include <netinet/in.h>
-#include <stdbool.h>
+#include <netdb.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
-#include <sys/types.h>
 #include <unistd.h>
 
-#include <iostream>
 #include <string>
 
-#include "protocol.h"
-#include "terminal.h"
+#include "authenticate.h"
+#include "color.h"
+#include "common.h"
+#include "connect.h"
+#include "download.h"
+#include "log.h"
+#include "ls.h"
+#include "pwd.h"
+#include "upload.h"
+#include "utils.h"
+#include "validate.h"
 
-int client_sock;
-bool isAuthen = false;
-Message *mess;
-char current_usr[255];
-
-/**
- * @brief Checks if the given string is a valid IP address.
- *
- * @param str The string to be checked.
- * @return true if the string is a valid IP address, false otherwise.
- */
-bool validIPAddress(const char *str);
+char root_dir[SIZE];
 
 /**
- *  @brief authentication menu of application: login, register, exit
- *  @return void
+ * Read command from user and store in Message struct
+ * @param user_input user input
+ * @param size size of user input
+ * @param msg Message struct
+ * @return 0 if success, -1 if error
  */
-void printAuthenMenu();
+int cli_read_command(char *user_input, int size, Message *msg);
 
-/**
- *  @brief main menu of application: download, upload file, etc...
- *  @return void
- */
-void printMainMenu();
+int main(int argc, char const *argv[]) {
+    int sockfd;
+    int data_sock;
+    char user_input[SIZE];
+    char *cur_user;
 
-/**
- * @brief get login information from user: username and password then save it to `msg->payload`
- * @brief also save username to `str`
- * @param str: username
- * @return void
- */
-void getLoginInfo(char *str);
-
-/**
- * @brief Performs the login functionality.
- *
- * This function prompts the user for a username, sends it to the server for authentication,
- * and updates the current_user variable with the authenticated username.
- *
- * @param current_user A pointer to a character array to store the authenticated username.
- */
-void loginFunc(char *current_user);
-
-int main(int argc, char *argv[]) {
     if (argc != 3) {
-        fprintf(stderr, "Usage: %s <ip_address> <port_number>\n", argv[0]);
-        return EXIT_FAILURE;
+        printf("Usage: %s <ip_adress> <port>\n", argv[0]);
+        exit(0);
     }
 
-    // check if the IP address is valid
-    char *SERV_IP = argv[1];
-    if (!validIPAddress(SERV_IP)) {
-        fprintf(stderr, "Error: invalid IP address\n");
-        return EXIT_FAILURE;
+    if (validate_ip(argv[1]) == INVALID_IP) {
+        printf("Error: Invalid ip-address\n");
+        exit(1);
     }
 
-    // check if the port number is valid
-    char *endptr;
-    errno = 0;
-    uint16_t SERV_PORT = strtoul(argv[2], &endptr, 10);
-    if (errno != 0 || *endptr != '\0') {
-        fprintf(stderr, "Error: %s\n", errno == EINVAL ? "invalid base" : "invalid input");
-        return EXIT_FAILURE;
+    sockfd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+
+    if (sockfd == INVALID_SOCKET) {
+        perror("Error: ");
+        exit(1);
     }
 
-    struct sockaddr_in server_addr; /* server's address information */
+    SOCKADDR_IN sock_addr;
 
-    // Step 1: Construct socket
-    if ((client_sock = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
-        perror("\nError creating socket");
-        return EXIT_FAILURE;
+    sock_addr.sin_family = AF_INET;
+    sock_addr.sin_port = htons(atoi(argv[2]));
+    sock_addr.sin_addr.s_addr = inet_addr(argv[1]);
+
+    int connect_status = connect(sockfd, (SOCKADDR *) &sock_addr, sizeof(sock_addr));
+
+    if (connect_status == -1) {
+        printf("Error: Connection failed!\n");
+        exit(1);
     }
 
-    // Step 2: Specify server address
-    memset(&server_addr, 0, sizeof(server_addr));
-    server_addr.sin_family = AF_INET;
-    server_addr.sin_port = htons(SERV_PORT);
-    server_addr.sin_addr.s_addr = inet_addr(SERV_IP);
+    const char *menu_items[] = {"Login", "Register", "Exit"};
 
-    // Step 3: Request to connect server
-    if (connect(client_sock, (struct sockaddr *) &server_addr, sizeof(server_addr)) == -1) {
-        perror("\nError connecting to server");
-        close(client_sock);
-        return EXIT_FAILURE;
+    int choice = process_menu(menu_items, 3);
+    switch (choice) {
+        case 0:
+            print_centered("Login to cppdrive");
+            cur_user = handle_login(sockfd);
+            break;
+        case 1:
+            print_centered("Register new account");
+            register_acc(sockfd);
+            print_centered("Login to cppdrive");
+            cur_user = handle_login(sockfd);
+            break;
+        case 2:
+            print_centered("Good bye!");
+            exit(0);
     }
 
-    // Step 4: Communicate with server
-    char choose;
-    mess = (Message *) malloc(sizeof(Message));
-    while (true) {
-        if (!isAuthen) {
-            printAuthenMenu();
-            scanf(" %c", &choose);
-            while (getchar() != '\n')
-                ;
-            switch (choose) {
-                case '1':
-                    loginFunc(current_usr);
-                    break;
-            }
+    // begin shell
+    char *user_dir = (char *) malloc(SIZE);
+    strcpy(user_dir, "~/");
+    int error = 0;
+    while (1) {
+        char *prompt = handle_prompt(cur_user, user_dir);
+        if (error) {
+            printf(ANSI_COLOR_RED "%s" ANSI_RESET, prompt);
+        }
+        printf(ANSI_COLOR_GREEN "%s" ANSI_RESET, prompt);
+        fflush(stdout);
+        Message command;
+        int fl = cli_read_command(user_input, sizeof(user_input), &command);
+        if (fl == -1) {
+            printf("Invalid command\n");
+            // next loop
+            continue;
+        }
+        // Send command to server
+        if (send_message(sockfd, command) < 0) {
+            close(sockfd);
+            exit(1);
+        }
 
-        } else {
-            Message msg;
-            msg.type = TYPE_REQUEST_DIRECTORY;
-            strcpy(msg.payload, current_usr);
-            msg.length = strlen(msg.payload);
-            sendMessage(client_sock, msg);
+        // open data connection
+        if ((data_sock = client_start_conn(sockfd)) < 0) {
+            perror("Error opening socket for data connection");
+            exit(1);
+        }
 
-            std::string str_tree = "";
-            while (true) {
-                receiveMessage(client_sock, &msg);
-                if (msg.length > 0) {
-                    std::string payload(msg.payload);
-                    str_tree += payload;
+        // execute command
+        if (command.type == MSG_TYPE_QUIT) {
+            printf("Goodbye.\n");
+            break;
+        } else if (command.type == MSG_TYPE_LS) {
+            handle_list(data_sock);
+        } else if (command.type == MSG_TYPE_BASIC_COMMAND) {
+            Message response;
+            while (1) {
+                recv_message(sockfd, &response);
+                if (response.type == MSG_TYPE_ERROR)
+                    printf("%s\n", response.payload);
+                else if (response.type == MSG_DATA_CMD) {
+                    printf("%s", response.payload);
                 } else {
                     break;
                 }
             }
-            std::system("clear");
-            Terminal terminal(str_tree);
-            std::string current_path = " ~";
-            while (true) {
-                std::cout << current_usr << "@cpp_drive:" << current_path << " $ ";
-                std::string command;
-                std::getline(std::cin, command);
-                Command parsedCommand = parseCommand(command);
-                switch (parsedCommand.command) {
-                    case COMMAND::CLEAR:
-                        std::system("clear");
-                        break;
-                    case COMMAND::LS:
-                        terminal.ls();
-                        break;
-                    case COMMAND::CD:
-                        if (parsedCommand.argument[1] == "..") {
-                            current_path = " ~";
-                            terminal.resetCurrentDirectory();
-                            continue;
-                        }
-                        if (terminal.cd(parsedCommand.argument[1])) {
-                            current_path += "/" + parsedCommand.argument[1];
-                        }
-                        break;
-                    case COMMAND::UPLOAD:
-                        break;
-                    case COMMAND::DOWNLOAD:
-                        break;
-                    case COMMAND::EXIT:
-                        break;
-                    case COMMAND::INVALID:
-                        break;
+        } else if (command.type == MSG_TYPE_CD) {
+            Message response;
+            recv_message(sockfd, &response);
+            switch (response.type) {
+                case MSG_DATA_CD:
+                    strcpy(user_dir, response.payload);
+                    break;
+                case MSG_TYPE_ERROR:
+                    printf("%s\n", response.payload);
+                    break;
+                default:
+                    break;
+            }
+        } else if (command.type == MSG_TYPE_DOWNLOAD) {
+            handle_download(data_sock, sockfd, command.payload);
+        } else if (command.type == MSG_TYPE_FIND) {
+            Message response;
+            std::string files;
+            while (1) {
+                recv_message(sockfd, &response);
+                if (response.type == MSG_TYPE_ERROR)
+                    printf("%s\n", response.payload);
+                else if (response.type == MSG_DATA_FIND) {
+                    printf("%s", response.payload);
+                    std::string str(response.payload);
+                    files += str;
+                } else {
+                    break;
                 }
             }
+            recv_message(sockfd, &response);
+            if (response.type == MSG_TYPE_PIPE) {
+                handle_pipe_download(sockfd, files);
+            }
+            files = "";
+        } else if (command.type == MSG_TYPE_SHARE) {
+            Message response;
+            recv_message(sockfd, &response);
+            if (response.type == MSG_TYPE_ERROR) {
+                printf("%s\n", response.payload);
+                continue;
+            } else {
+                recv_message(sockfd, &response);
+                if (response.type == MSG_TYPE_ERROR) {
+                    printf("%s\n", response.payload);
+                    continue;
+                } else {
+                    printf(ANSI_COLOR_GREEN "Shared sucessfully!" ANSI_RESET "\n");
+                }
+            }
+
+        } else if (command.type == MSG_TYPE_PWD) {
+            const char *pwd = handle_pwd(cur_user, user_dir);
+            printf("%s\n", pwd);
+        } else if (command.type == MSG_TYPE_UPLOAD) {
+            handle_upload(data_sock, command.payload, sockfd);
+        } else if (command.type == MSG_TYPE_RELOAD) {
         }
-    }
-    // Step 5: Close socket
-    close(client_sock);
-    return EXIT_SUCCESS;
+        close(data_sock);
+
+    }   // loop back to get more user input
+
+    // Close the socket (control connection)
+    close(sockfd);
+    return 0;
 }
 
-bool validIPAddress(const char *str) {
-    struct in_addr addr;
-    return inet_pton(AF_INET, str, &addr) == 1;
-}
+int cli_read_command(char *user_input, int size, Message *msg) {
+    // wait for user to enter a command
+    read_input(user_input, size);
 
-void printAuthenMenu() {
-    printf("\n------------------CPP DRIVE------------------\n");
-    printf("\n1 - Login");
-    printf("\n2 - Register");
-    printf("\n3 - Exit");
-    printf("\nChoose: ");
-}
+    if (strcmp(user_input, "ls ") == 0 || strcmp(user_input, "ls") == 0) {
+        msg->type = MSG_TYPE_LS;
+    } else if (strncmp(user_input, "cd ", 3) == 0) {
+        msg->type = MSG_TYPE_CD;
+        strcpy(msg->payload, user_input + 3);
+    } else if (strncmp(user_input, "find ", 5) == 0) {
+        std::string cmd(user_input);
+        std::string left_cmd, right_cmd;
+        size_t pos = cmd.find('|');
+        if (pos != std::string::npos) {
+            // '|' found, split the string
+            left_cmd = cmd.substr(0, pos);
+            right_cmd = cmd.substr(pos + 1);
 
-void printMainMenu() {
-    printf("\n------------------Menu------------------\n");
-    printf("\n1 - Upload file");
-    printf("\n2 - Download File");
-    printf("\n3 - Rename File");
-    printf("\n4 - Change directory File");
-    printf("\n5 - Open folder");
-    printf("\n6 - Create folder");
-    printf("\n7 - Logout");
-    printf("\nPlease choose: ");
-}
+            left_cmd.erase(left_cmd.find_last_not_of(" \n\r\t") + 1);
+            right_cmd.erase(0, right_cmd.find_first_not_of(" \n\r\t"));
+            if (!(right_cmd == "dl" || right_cmd == "download")) {
+                printf("%s not supported!\n", right_cmd.c_str());
+                return -1;
+            } else {
+                msg->type = MSG_TYPE_FIND;
+                strcpy(msg->payload, user_input + 5);
+            }
+        } else {
+            msg->type = MSG_TYPE_FIND;
+            strcpy(msg->payload, user_input + 5);
+        }
 
-void getLoginInfo(char *str) {
-    char username[255];
-    char password[255];
-    printf("Enter username: ");
-    scanf("%[^\n]s", username);
-    while (getchar() != '\n')
-        ;
-    printf("Enter password: ");
-    scanf("%[^\n]s", password);
-    while (getchar() != '\n')
-        ;
-    sprintf(mess->payload, "LOGIN\nUSER %s\nPASS %s", username, password);
-    strcpy(str, username);
-}
-
-void loginFunc(char *current_user) {
-    char username[255];
-    mess->type = TYPE_AUTHENTICATE;
-    getLoginInfo(username);
-    strcpy(current_user, username);
-    mess->length = strlen(mess->payload);
-    sendMessage(client_sock, *mess);
-    receiveMessage(client_sock, mess);
-    if (mess->type != TYPE_ERROR) {
-        isAuthen = true;
+    } else if (strncmp(user_input, "rm", 2) == 0) {
+        msg->type = MSG_TYPE_BASIC_COMMAND;
+        strcpy(msg->payload, user_input);
+    } else if (strncmp(user_input, "mv", 2) == 0) {
+        msg->type = MSG_TYPE_BASIC_COMMAND;
+        strcpy(msg->payload, user_input);
+    } else if (strncmp(user_input, "cp", 2) == 0) {
+        msg->type = MSG_TYPE_BASIC_COMMAND;
+        strcpy(msg->payload, user_input);
+    } else if (strncmp(user_input, "share ", 6) == 0) {
+        msg->type = MSG_TYPE_SHARE;
+        strcpy(msg->payload, user_input + 6);
+    } else if (strncmp(user_input, "mkdir", 5) == 0) {
+        msg->type = MSG_TYPE_BASIC_COMMAND;
+        strcpy(msg->payload, user_input);
+    } else if (strncmp(user_input, "touch", 5) == 0) {
+        msg->type = MSG_TYPE_BASIC_COMMAND;
+        strcpy(msg->payload, user_input);
+    } else if (strncmp(user_input, "cat", 3) == 0) {
+        msg->type = MSG_TYPE_BASIC_COMMAND;
+        strcpy(msg->payload, user_input);
+    } else if (strncmp(user_input, "echo", 4) == 0) {
+        msg->type = MSG_TYPE_BASIC_COMMAND;
+        strcpy(msg->payload, user_input);
+    } else if (strcmp(user_input, "pwd") == 0 || strcmp(user_input, "pwd ") == 0) {
+        msg->type = MSG_TYPE_PWD;
+    } else if (strncmp(user_input, "up ", 3) == 0 || strncmp(user_input, "upload ", 7) == 0) {
+        msg->type = MSG_TYPE_UPLOAD;
+        if (strncmp(user_input, "up ", 3) == 0) {
+            strcpy(msg->payload, user_input + 3);
+        } else {
+            strcpy(msg->payload, user_input + 7);
+        }
+    } else if (strncmp(user_input, "dl ", 3) == 0 || strncmp(user_input, "download ", 9) == 0) {
+        msg->type = MSG_TYPE_DOWNLOAD;
+        if (strncmp(user_input, "dl ", 3) == 0) {
+            strcpy(msg->payload, user_input + 3);
+        } else {
+            strcpy(msg->payload, user_input + 9);
+        }
+    } else if (strcmp(user_input, "quit") == 0 || strcmp(user_input, "quit ") == 0 ||
+               strcmp(user_input, "exit") == 0 || strcmp(user_input, "exit ") == 0) {
+        msg->type = MSG_TYPE_QUIT;
+    } else if (strcmp(user_input, "clear") == 0) {
+        system("clear");
+    } else if (strcmp(user_input, "reload") == 0) {
+        msg->type = MSG_TYPE_RELOAD;
     } else {
-        printf("Login failed\n");
+        return -1;
     }
+
+    return 0;
 }

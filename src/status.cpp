@@ -2,8 +2,11 @@
 
 #include <string>
 
-std::string statusToString(StatusCode code) {
+std::string status_str(Status code) {
     switch (code) {
+        case USERNAME_EXIST:
+            return "Username is existed!";
+            break;
         // success message
         case USER_NOT_FOUND:
             return "User Not Found!!";
@@ -19,7 +22,11 @@ std::string statusToString(StatusCode code) {
             break;
         // error message
         case LOGIN_SUCCESS:
-            return "Login Successfully!!";
+            return "Login Successfully!";
+            break;
+        // error message
+        case LOGIN_FAIL:
+            return "Incorrect username or password, or your account is locked!";
             break;
         case USER_IS_ONLINE:
             return "The User Was In Online!!";
@@ -35,7 +42,7 @@ std::string statusToString(StatusCode code) {
             return "Logout SuccessFully!!";
             break;
         case FILE_NOT_FOUND:
-            return "User Not Found!!";
+            return "File Not Found!";
             break;
         case COMMAND_INVALID:
             return "Command was invalid!!";
@@ -46,6 +53,18 @@ std::string statusToString(StatusCode code) {
         // server error message
         case SERVER_ERROR:
             return "Something error!!";
+            break;
+        case DIRECTORY_NOT_FOUND:
+            return "cd: No such file or directory!";
+            break;
+        case STATUS_MV_ERROR:
+            return "Usage: mv <old_path> <new_path>";
+            break;
+        case STATUS_SHARECMD_ERROR:
+            return "Usage: share <mode> -u <username> -f <filename>";
+            break;
+        case NO:
+            return "";
             break;
         default:
             break;

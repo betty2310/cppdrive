@@ -1,61 +1,150 @@
 #include "utils.h"
 
-#include <assert.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/ioctl.h>
+#include <termios.h>
+#include <unistd.h>
 
-#include <filesystem>
-#include <string>
+std::vector<std::string> split(const std::string &s, char delim) {
+    std::vector<std::string> tokens;
+    std::string token;
+    std::istringstream tokenStream(s);
 
-char** str_split(char* a_str, const char a_delim) {
-    char** result = 0;
-    size_t count = 0;
-    char* tmp = a_str;
-    char* last_comma = 0;
-    char delim[2];
-    delim[0] = a_delim;
-    delim[1] = 0;
-
-    /* Count how many elements will be extracted. */
-    while (*tmp) {
-        if (a_delim == *tmp) {
-            count++;
-            last_comma = tmp;
+    while (getline(tokenStream, token, delim)) {
+        if (!token.empty()) {
+            tokens.push_back(token);
         }
-        tmp++;
     }
 
-    /* Add space for trailing token. */
-    count += last_comma < (a_str + strlen(a_str) - 1);
-
-    /* Add space for terminating null string so caller
-       knows where the list of returned strings ends. */
-    count++;
-
-    result = (char**) malloc(sizeof(char*) * count);
-
-    if (result) {
-        size_t idx = 0;
-        char* token = strtok(a_str, delim);
-
-        while (token) {
-            assert(idx < count);
-            *(result + idx++) = strdup(token);
-            token = strtok(0, delim);
-        }
-        if ((count - 1)) {
-            assert(idx == count - 1);
-        }
-        *(result + idx) = 0;
-    }
-
-    return result;
+    return tokens;
 }
 
-void createFolder(char* username) {
-    std::string path(username);
-    path = DATA_PATH + path + "/";
-    if (!std::filesystem::exists(path)) {
-        std::filesystem::create_directories(path);
+void zip(const char *folder, const char *compress_path) {
+    char command[1000];
+    if (compress_path[0] == '/') {
+        sprintf(command, "cd %s && zip -r -y %s . > /dev/null 2>&1", folder, compress_path);
+    } else {
+        sprintf(command, "cd %s && zip -r -y ../%s . > /dev/null 2>&1", folder, compress_path);
     }
+    system(command);
+}
+
+void unzip(const char *compressed_path, const char *extract_path) {
+    char command[1000];
+    sprintf(command, "unzip -o %s -d %s > /dev/null 2>&1", compressed_path, extract_path);
+    system(command);
+}
+
+void print_centered(const char *text) {
+    struct winsize w;
+    ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
+
+    int len = strlen(text);
+    int spaces = (w.ws_col - len) / 2;
+
+    for (int i = 0; i < spaces; i++) {
+        printf(" ");
+    }
+
+    printf(ANSI_BOLD ANSI_COLOR_BLUE "%s" ANSI_RESET "\n", text);
+}
+
+void enable_raw_mode(struct termios *orig_termios) {
+    struct termios raw = *orig_termios;
+    raw.c_lflag &= ~(ECHO | ICANON);
+    tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
+}
+
+void disable_raw_mode(struct termios *orig_termios) {
+    tcsetattr(STDIN_FILENO, TCSAFLUSH, orig_termios);
+}
+
+void print_menu(int current_selection, const char *options[], int num_options) {
+    for (int i = 0; i < num_options; i++) {
+        if (i == current_selection) {
+            printf(ANSI_BOLD ANSI_COLOR_YELLOW "> %s" ANSI_RESET "\n", options[i]);
+
+        } else {
+            printf("  %s\n", options[i]);
+        }
+    }
+}
+
+int process_menu(const char *menu_items[], int num_items) {
+    int current_selection = 0;
+
+    struct termios orig_termios;
+    tcgetattr(STDIN_FILENO, &orig_termios);
+
+    enable_raw_mode(&orig_termios);
+    print_centered("CPPDRIVE\n");
+    print_menu(current_selection, menu_items, num_items);
+
+    while (1) {
+        char c;
+        read(STDIN_FILENO, &c, 1);
+
+        if (c == '\033') {
+            char seq[3];
+            read(STDIN_FILENO, &seq[0], 1);
+            read(STDIN_FILENO, &seq[1], 1);
+
+            if (seq[0] == '[') {
+                if (seq[1] == 'A' && current_selection > 0) {   // Up arrow
+                    current_selection--;
+                } else if (seq[1] == 'B' && current_selection < num_items - 1) {   // Down arrow
+                    current_selection++;
+                }
+            }
+
+            printf("\033[H\033[J");
+            print_centered("CPPDRIVE\n");
+            print_menu(current_selection, menu_items, num_items);
+        } else if (c == '\n') {
+            break;
+        }
+    }
+
+    disable_raw_mode(&orig_termios);
+    return current_selection;
+}
+
+char *handle_prompt(char *cur_user, char *user_dir) {
+    const std::string app_name = "cppdrive";
+    std::vector<std::string> tokens;
+    std::string token;
+    std::string user_dir_str(user_dir);
+    std::istringstream tokenStream(user_dir_str);
+
+    while (getline(tokenStream, token, '/')) {
+        if (!token.empty()) {
+            tokens.push_back(token);
+        }
+    }
+
+    // Find the index of cur_user in the tokens
+    size_t user_index = std::string::npos;
+    for (size_t i = 0; i < tokens.size(); ++i) {
+        if (tokens[i] == cur_user) {
+            user_index = i;
+            break;
+        }
+    }
+
+    char *prompt = (char *) malloc(sizeof(char) * 100);
+    if (user_index == std::string::npos) {
+        sprintf(prompt, "[%s@%s ~/]$ ", cur_user, app_name.c_str());
+        return prompt;
+    }
+
+    // Construct the path from the user's directory onwards
+    std::string path = "~/";
+    for (size_t i = user_index + 1; i < tokens.size(); ++i) {
+        path += tokens[i] + "/";
+    }
+
+    sprintf(prompt, "[%s@%s %s]$ ", cur_user, app_name.c_str(), path.c_str());
+    return prompt;
 }
