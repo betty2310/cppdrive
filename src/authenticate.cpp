@@ -2,6 +2,7 @@
 
 #include <openssl/evp.h>
 #include <sys/socket.h>
+#include <sys/stat.h>
 #include <unistd.h>
 
 #include <cstdio>
@@ -371,10 +372,11 @@ int server_register(int sock_control, Message msg) {
     // Create storage directory for new user
     strcat(user_storage, user);
     create_user_storage(user_storage);
-    strcat(user_storage, "/.shared");
-    FILE *shared;
-    shared = fopen(user_storage, "w");
-    fclose(shared);
+    strcat(user_storage, "/share");
+    mkdir(user_storage, 0777);
+    strcat(user_storage, "/.share");
+    FILE *share = fopen(user_storage, "w");
+    fclose(share);
 
     fclose(fp);
     return 1;

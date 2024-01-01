@@ -16,4 +16,18 @@ int process_command(int sockfd, char* cmd);
  */
 int server_find(int sockfd, char* arg);
 
+/**
+ * share file to another user
+ * @param sockfd: socket to send result to
+ * @param arg: argument of command
+ * @param user_dir: current directory of user
+ * @return 0 if success, -1 if error
+ */
+int server_share(int sockfd, char* arg, char* user_dir);
+
+/**
+ * Load shared file to shared folder of each user
+ */
+int load_shared_file(char* user_dir);
+
 #endif   // !__COMMAND_H__

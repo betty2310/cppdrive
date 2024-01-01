@@ -1,3 +1,4 @@
+#include <sys/stat.h>
 #include <validate.h>
 
 #include <cstdio>
@@ -28,4 +29,15 @@ int validate_ip(const char *ip) {
         else
             return 1;
     }
+}
+
+int validate_file_or_dir(const char *path) {
+    struct stat path_stat;
+    stat(path, &path_stat);
+    if (S_ISDIR(path_stat.st_mode))
+        return 0;
+    else if (S_ISREG(path_stat.st_mode))
+        return 1;
+    else
+        return -1;
 }

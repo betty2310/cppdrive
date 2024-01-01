@@ -48,7 +48,8 @@ int server_list(int sockfd) {
     getcwd(curr_dir, sizeof(curr_dir));
     int n = scandir(curr_dir, &output, NULL, compare);
     for (int i = 0; i < n; i++) {
-        if (strcmp(output[i]->d_name, ".") != 0 && strcmp(output[i]->d_name, "..") != 0) {
+        if (strcmp(output[i]->d_name, ".") != 0 && strcmp(output[i]->d_name, "..") != 0 &&
+            strcmp(output[i]->d_name, ".share") != 0) {
             struct stat s;
             if (stat(output[i]->d_name, &s) == 0) {
                 if (s.st_mode & S_IFDIR) {

@@ -66,6 +66,7 @@ void ftserve_process(int sockfd) {
     int sock_data;
     char user_dir[SIZE] = "user/";
     char *cur_user;
+    char *cur_dir = (char *) malloc(sizeof(char) * SIZE);
 
     Message msg;
     recv_message(sockfd, &msg);
@@ -102,7 +103,8 @@ void ftserve_process(int sockfd) {
     char *log = (char *) malloc(sizeof(char) * 100);
     sprintf(log, "User %s logged in", cur_user);
     server_log('i', log);
-
+    strcpy(cur_dir, user_dir);
+    load_shared_file(user_dir);
     while (1) {
         // TODO: handle relogin case
         Message msg;
@@ -122,7 +124,7 @@ void ftserve_process(int sockfd) {
                 server_list(sock_data);
                 break;
             case MSG_TYPE_CD:
-                server_cd(sockfd, msg.payload, user_dir);
+                server_cd(sockfd, msg.payload, user_dir, cur_dir);
                 break;
             case MSG_TYPE_PWD:
                 // handle on client side
@@ -139,17 +141,18 @@ void ftserve_process(int sockfd) {
             case MSG_TYPE_FIND:
                 server_find(sockfd, msg.payload);
                 break;
+            case MSG_TYPE_SHARE:
+                server_share(sockfd, msg.payload, cur_dir);
+                break;
+            case MSG_TYPE_RELOAD:
+                load_shared_file(user_dir);
+                break;
             case MSG_TYPE_QUIT:
                 server_quit(sockfd, cur_user);
                 break;
             default:
                 break;
         }
-
-        // } else if (strcmp(cmd, "SHRE") == 0) {   // share file
-        //     // ftserve_share(sockfd, arg, cur_user);
-        // }
-        // Close data connection
         close(sock_data);
     }
 }

@@ -50,6 +50,7 @@ set(SOURCES          # All .cpp files in src/
     src/command/cd.cpp
     src/command/quit.cpp
     src/command/pwd.cpp
+    src/command/share.cpp
 )
 
 set(LIBRARY_NAME engine)  # Default name for the library built from src/*.cpp (change if you wish)

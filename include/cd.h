@@ -7,6 +7,6 @@ int is_subdir(const char *baseDir, const char *dir);
  * Change directory
  * Return -1 on error, 0 on success
  */
-int server_cd(int sock_control, char *folderName, char *user_dir);
+int server_cd(int sock_control, char *folderName, char *user_dir, char *cur_user_dir);
 
 #endif

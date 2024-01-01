@@ -170,23 +170,27 @@ int main(int argc, char const *argv[]) {
             }
             files = "";
         } else if (command.type == MSG_TYPE_SHARE) {
-            int repl = 0;
-            if (repl == 261)
-                printf("261 Shared successfully\n");
-            else if (repl == 462)
-                printf("462 User not found\n");
-            else if (repl == 463)
-                printf("463 File/Folder not found\n");
-            else if (repl == 464)
-                printf("464 Must not share to yourself\n");
-            else if (repl == 461)
-                printf("461 Syntax error (share <username> <filename>)\n");
+            Message response;
+            recv_message(sockfd, &response);
+            if (response.type == MSG_TYPE_ERROR) {
+                printf("%s\n", response.payload);
+                continue;
+            } else {
+                recv_message(sockfd, &response);
+                if (response.type == MSG_TYPE_ERROR) {
+                    printf("%s\n", response.payload);
+                    continue;
+                } else {
+                    printf(ANSI_COLOR_GREEN "Shared sucessfully!" ANSI_RESET "\n");
+                }
+            }
 
         } else if (command.type == MSG_TYPE_PWD) {
             const char *pwd = handle_pwd(cur_user, user_dir);
             printf("%s\n", pwd);
         } else if (command.type == MSG_TYPE_UPLOAD) {
             handle_upload(data_sock, command.payload, sockfd);
+        } else if (command.type == MSG_TYPE_RELOAD) {
         }
         close(data_sock);
 
@@ -239,11 +243,8 @@ int cli_read_command(char *user_input, int size, Message *msg) {
         msg->type = MSG_TYPE_BASIC_COMMAND;
         strcpy(msg->payload, user_input);
     } else if (strncmp(user_input, "share ", 6) == 0) {
-        // strcpy(cstruct->code, "SHRE");
-        // strcpy(cstruct->arg, user_input + 6);
-
-        // memset(user_input, 0, SIZE);
-        // sprintf(user_input, "%s %s", cstruct->code, cstruct->arg);
+        msg->type = MSG_TYPE_SHARE;
+        strcpy(msg->payload, user_input + 6);
     } else if (strncmp(user_input, "mkdir", 5) == 0) {
         msg->type = MSG_TYPE_BASIC_COMMAND;
         strcpy(msg->payload, user_input);
@@ -251,6 +252,9 @@ int cli_read_command(char *user_input, int size, Message *msg) {
         msg->type = MSG_TYPE_BASIC_COMMAND;
         strcpy(msg->payload, user_input);
     } else if (strncmp(user_input, "cat", 3) == 0) {
+        msg->type = MSG_TYPE_BASIC_COMMAND;
+        strcpy(msg->payload, user_input);
+    } else if (strncmp(user_input, "echo", 4) == 0) {
         msg->type = MSG_TYPE_BASIC_COMMAND;
         strcpy(msg->payload, user_input);
     } else if (strcmp(user_input, "pwd") == 0 || strcmp(user_input, "pwd ") == 0) {
@@ -274,6 +278,8 @@ int cli_read_command(char *user_input, int size, Message *msg) {
         msg->type = MSG_TYPE_QUIT;
     } else if (strcmp(user_input, "clear") == 0) {
         system("clear");
+    } else if (strcmp(user_input, "reload") == 0) {
+        msg->type = MSG_TYPE_RELOAD;
     } else {
         return -1;
     }

@@ -60,6 +60,9 @@ std::string status_str(Status code) {
         case STATUS_MV_ERROR:
             return "Usage: mv <old_path> <new_path>";
             break;
+        case STATUS_SHARECMD_ERROR:
+            return "Usage: share <mode> -u <username> -f <filename>";
+            break;
         case NO:
             return "";
             break;

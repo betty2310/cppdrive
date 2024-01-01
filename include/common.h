@@ -11,11 +11,6 @@ typedef struct sockaddr_in SOCKADDR_IN;
 typedef struct sockaddr SOCKADDR;
 typedef struct addrinfo ADDRINFO;
 
-struct command {
-    char arg[SIZE];
-    char code[5];
-};
-
 extern char root_dir[SIZE];
 
 void read_input(char *user_input, int size);
@@ -33,13 +28,6 @@ int is_folder(const char *path);
  * characters from a string
  */
 void trimstr(char *str, int n);
-
-/**
- * Function to split arg
- * eg input="name1 name2" into str1="name1",str2="name2"
- * return 0 when success, return -1 on error
- */
-int splitString(char *input, char **str1, char **str2);
 
 // Function to lock or unlock a user in the .auth file (0 for unlock, 1 for lock)
 void toggle_lock(const char *username, int lockStatus);
