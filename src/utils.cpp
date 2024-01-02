@@ -11,6 +11,8 @@
 #include "common.h"
 #include "log.h"
 
+int is_client(const char *process) { return strcmp(process, "./client") == 0; }
+
 std::vector<std::string> split(const std::string &s, char delim) {
     std::vector<std::string> tokens;
     std::string token;

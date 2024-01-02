@@ -13,11 +13,14 @@
 #include "command.h"
 #include "common.h"
 #include "connect.h"
+#include "crypto.h"
 #include "log.h"
 #include "utils.h"
 #include "validate.h"
 
+const char *process;
 char root_dir[SIZE];
+std::string SYMMETRIC_KEY;
 
 /**
  * Read command from user and store in Message struct
@@ -28,7 +31,18 @@ char root_dir[SIZE];
  */
 int cli_read_command(char *user_input, int size, Message *msg);
 
+/**
+ * Send symmetric key to server
+ * First, generate a symmetric key
+ * Then, receive public key from server
+ * Encrypt symmetric key with public key
+ * Send encrypted symmetric key to server
+ * @param sockfd socket for control connection
+ */
+void handle_symmetric_key_pair(int sockfd);
+
 int main(int argc, char const *argv[]) {
+    process = argv[0];
     int sockfd;
     int data_sock;
     char user_input[SIZE];
@@ -93,6 +107,9 @@ int main(int argc, char const *argv[]) {
     }
     sprintf(log_msg, "User %s login successfully", cur_user);
     log_message('i', log_msg);
+
+    handle_symmetric_key_pair(sockfd);
+
     // begin shell
     char *user_dir = (char *) malloc(SIZE);
     strcpy(user_dir, "~/");
@@ -320,6 +337,47 @@ int cli_read_command(char *user_input, int size, Message *msg) {
     } else {
         return -1;
     }
-
     return 0;
+}
+
+void handle_symmetric_key_pair(int sockfd) {
+    std::string aesKey;
+    if (generate_symmetric_key(aesKey)) {
+        log_message('i', "AES key generated successfully!");
+        log_message('i', aesKey.c_str());
+    } else {
+        log_message('w', "AES key generation failed, use default key");
+        for (int i = 0; i < SYMMETRIC_KEY_SIZE; i++) {
+            aesKey.push_back('0' + i);
+        }
+    }
+
+    printf("AES key gen first: %s\n", aesKey.c_str());
+
+    SYMMETRIC_KEY = aesKey;
+
+    Message key;
+    recv_message(sockfd, &key);
+    std::string public_server_key(key.payload);
+
+    log_message('i', "Received public key from server");
+    log_message('i', public_server_key.c_str());
+
+    printf("Public server key size: %lu\n", public_server_key.size());
+
+    std::string ciphertext;
+    if (encrypt_symmetric_key(public_server_key, aesKey, ciphertext)) {
+        printf("Encrypted symmetric key: %s with size: %ld\n", ciphertext.c_str(),
+               ciphertext.size());
+        Message msg;
+        msg.type = MSG_DATA_PUBKEY;
+        msg.length = ciphertext.size();
+        memcpy(msg.payload, ciphertext.data(), ciphertext.size());
+        send_message(sockfd, msg);
+        log_message('i', "Send encrypted symmetric key to server");
+        log_message('i', ciphertext.c_str());
+    } else {
+        log_message('e', "Failed to send encrypted symmetric key to server!");
+        exit(1);
+    }
 }

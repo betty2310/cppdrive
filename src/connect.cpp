@@ -11,6 +11,8 @@
 #include <cstring>
 
 #include "common.h"
+#include "crypto.h"
+#include "utils.h"
 
 int send_message(int sockfd, Message msg) {
     int dataLength, nLeft, idx;

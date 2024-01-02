@@ -10,6 +10,13 @@
 #define UP_ARROW   "\033[A"
 #define DOWN_ARROW "\033[B"
 
+/**
+ * Check if a process is a client
+ * @param process process name
+ * @return 1 if true, 0 if false
+*/
+int is_client(const char *process);
+
 void read_input(char *user_input, int size);
 
 /**

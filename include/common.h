@@ -7,6 +7,9 @@
 #define ACCOUNTS_FILE "accounts.txt"
 #define APP_STORAGE   "storage/"
 
+extern const char* process;
 extern char root_dir[SIZE];
+
+extern std::string SYMMETRIC_KEY;
 
 #endif   // !__COMMON_H__

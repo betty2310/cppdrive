@@ -11,17 +11,21 @@
 
 #include <cstring>
 #include <string>
+#include <vector>
 
 #include "authenticate.h"
 #include "command.h"
 #include "common.h"
 #include "connect.h"
+#include "crypto.h"
 #include "log.h"
 #include "message.h"
 #include "status.h"
 #include "utils.h"
 
+const char *process;
 char root_dir[SIZE];
+std::string SYMMETRIC_KEY;
 
 /**
  * Create cppdrive storage directory
@@ -35,7 +39,17 @@ void create_app_storage(char *dir);
  */
 void server_handler(int sockfd);
 
+/**
+ * Get symmetric key from client
+ * First, we recive encrypted symmetric key from client
+ * Then, decrypt symmetric key with private key
+ * @param sockfd socket for control connection
+ * @param cur_user current user
+ */
+void handle_symmetric_key_pair(int sockfd, char *cur_user);
+
 int main(int argc, char const *argv[]) {
+    process = argv[0];
     getcwd(root_dir, sizeof(root_dir));
     int socket, sockfd, pid;
     create_app_storage(root_dir);
@@ -78,6 +92,7 @@ void server_handler(int sockfd) {
     char *log_message = (char *) malloc(sizeof(char) * SIZE * 2);
 
     int logged_in = 0;
+
     do {
         Message msg;
         recv_message(sockfd, &msg);
@@ -107,6 +122,9 @@ void server_handler(int sockfd) {
     server_log('i', log_message);
     strcpy(cur_dir, user_dir);
     load_shared_file(user_dir);
+
+    handle_symmetric_key_pair(sockfd, cur_user);
+
     while (1) {
         Message msg;
         int st = recv_message(sockfd, &msg);
@@ -169,4 +187,44 @@ void create_app_storage(char *dir) {
     std::string accounts_pah = path + ACCOUNTS_FILE;
     create_dir(storage_path.c_str());
     create_file(accounts_pah.c_str());
+}
+
+void handle_symmetric_key_pair(int sockfd, char *cur_user) {
+    std::string public_key;
+    std::string private_key;
+    if (generate_key_pair(public_key, private_key)) {
+        send_message(sockfd, create_message(MSG_DATA_PUBKEY, (char *) public_key.c_str()));
+        server_log('i', "Key pair generated");
+        server_log('i', public_key.c_str());
+        server_log('i', private_key.c_str());
+    } else {
+        printf("Error: Failed to generate key pair\n");
+        server_log('e', "Failed to generate key pair");
+        return;
+    }
+
+    Message key;
+    recv_message(sockfd, &key);
+    if (key.type != MSG_DATA_PUBKEY) {
+        printf("Error: Failed to receive encrypted symmetric key\n");
+        server_log('e', "Failed to receive encrypted symmetric key");
+        return;
+    }
+    std::string msg_log = "";
+    msg_log += "Received encrypted symmetric key from user \"" + std::string(cur_user) + "\"";
+    server_log('i', msg_log.c_str());
+    std::string encrypted_symmetric_key(key.payload, key.length);
+
+    server_log('i', encrypted_symmetric_key.c_str());
+    std::string symmetric_key;
+    if (decrypt_symmetric_key(private_key, encrypted_symmetric_key, symmetric_key)) {
+        msg_log = "Decrypted symmetric key from user \"" + std::string(cur_user) + "\"";
+        server_log('i', msg_log.c_str());
+        server_log('i', symmetric_key.c_str());
+    } else {
+        printf("Error: Failed to decrypt symmetric key\n");
+        server_log('e', "Failed to decrypt symmetric key");
+        return;
+    }
+    SYMMETRIC_KEY = symmetric_key;
 }

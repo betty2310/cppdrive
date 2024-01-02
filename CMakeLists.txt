@@ -41,6 +41,7 @@ set(SOURCES          # All .cpp files in src/
     src/message.cpp
     src/status.cpp
     src/log.cpp
+    src/crypto.cpp
     src/command/download.cpp
     src/command/ls.cpp
     src/command/command.cpp
