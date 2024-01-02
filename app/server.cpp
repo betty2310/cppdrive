@@ -25,10 +25,7 @@
 
 const char *process;
 char root_dir[SIZE];
-std::string public_key;
-std::string private_key;
-std::string public_client_key = "";
-std::string public_server_key = "";
+std::string SYMMETRIC_KEY;
 
 /**
  * Create cppdrive storage directory
@@ -41,6 +38,15 @@ void create_app_storage(char *dir);
  * @param sockfd socket for control connection
  */
 void server_handler(int sockfd);
+
+/**
+ * Get symmetric key from client
+ * First, we recive encrypted symmetric key from client
+ * Then, decrypt symmetric key with private key
+ * @param sockfd socket for control connection
+ * @param cur_user current user
+ */
+void handle_symmetric_key_pair(int sockfd, char *cur_user);
 
 int main(int argc, char const *argv[]) {
     process = argv[0];
@@ -111,44 +117,14 @@ void server_handler(int sockfd) {
         }
     } while (!logged_in);
 
-    if (generate_key_pair(public_key, private_key)) {
-        printf("Send public key to client\n");
-        send_message(sockfd, create_message(MSG_DATA_PUBKEY, (char *) public_key.c_str()));
-        server_log('i', "Key pair generated");
-        server_log('i', public_key.c_str());
-        server_log('i', private_key.c_str());
-    } else {
-        printf("Error: Failed to generate key pair\n");
-        server_log('e', "Failed to generate key pair");
-        exit(1);
-    }
-
-    std::vector<unsigned char> encrypted;
-    std::string decrypted;
-
-    // std::string plaintext = "Hello, World!";
-    // if (encrypt_data(public_key, plaintext, encrypted)) {
-    //     for (int i = 0; i < (int) encrypted.size(); i++) {
-    //         printf("%02x", encrypted[i]);
-    //     }
-    // }
-
-    // if (decrypt_data(private_key, encrypted, decrypted)) {
-    //     printf("Decrypted: %s\n", decrypted.c_str());
-    // }
-
-    Message key;
-    recv_message(sockfd, &key);
-    std::string public_client_key_(key.payload);
-    public_client_key = public_client_key_;
-    server_log('i', "Public key received");
-    server_log('i', public_client_key.c_str());
-
     cur_user = get_username(user_dir);
     sprintf(log_message, "User %s logged in", cur_user);
     server_log('i', log_message);
     strcpy(cur_dir, user_dir);
     load_shared_file(user_dir);
+
+    handle_symmetric_key_pair(sockfd, cur_user);
+
     while (1) {
         Message msg;
         int st = recv_message(sockfd, &msg);
@@ -211,4 +187,44 @@ void create_app_storage(char *dir) {
     std::string accounts_pah = path + ACCOUNTS_FILE;
     create_dir(storage_path.c_str());
     create_file(accounts_pah.c_str());
+}
+
+void handle_symmetric_key_pair(int sockfd, char *cur_user) {
+    std::string public_key;
+    std::string private_key;
+    if (generate_key_pair(public_key, private_key)) {
+        send_message(sockfd, create_message(MSG_DATA_PUBKEY, (char *) public_key.c_str()));
+        server_log('i', "Key pair generated");
+        server_log('i', public_key.c_str());
+        server_log('i', private_key.c_str());
+    } else {
+        printf("Error: Failed to generate key pair\n");
+        server_log('e', "Failed to generate key pair");
+        return;
+    }
+
+    Message key;
+    recv_message(sockfd, &key);
+    if (key.type != MSG_DATA_PUBKEY) {
+        printf("Error: Failed to receive encrypted symmetric key\n");
+        server_log('e', "Failed to receive encrypted symmetric key");
+        return;
+    }
+    std::string msg_log = "";
+    msg_log += "Received encrypted symmetric key from user \"" + std::string(cur_user) + "\"";
+    server_log('i', msg_log.c_str());
+    std::string encrypted_symmetric_key(key.payload, key.length);
+
+    server_log('i', encrypted_symmetric_key.c_str());
+    std::string symmetric_key;
+    if (decrypt_symmetric_key(private_key, encrypted_symmetric_key, symmetric_key)) {
+        msg_log = "Decrypted symmetric key from user \"" + std::string(cur_user) + "\"";
+        server_log('i', msg_log.c_str());
+        server_log('i', symmetric_key.c_str());
+    } else {
+        printf("Error: Failed to decrypt symmetric key\n");
+        server_log('e', "Failed to decrypt symmetric key");
+        return;
+    }
+    SYMMETRIC_KEY = symmetric_key;
 }

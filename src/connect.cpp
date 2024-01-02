@@ -15,12 +15,6 @@
 #include "utils.h"
 
 int send_message(int sockfd, Message msg) {
-    std::string key = is_client(process) ? public_server_key : public_client_key;
-    if (key.empty()) {
-        printf("Error: Public key not found\n");
-    } else {
-        printf("Public key found\n");
-    }
     int dataLength, nLeft, idx;
     nLeft = sizeof(Message);
     idx = 0;

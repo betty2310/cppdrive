@@ -10,9 +10,6 @@
 extern const char* process;
 extern char root_dir[SIZE];
 
-extern std::string public_key;
-extern std::string private_key;
-extern std::string public_client_key;
-extern std::string public_server_key;
+extern std::string SYMMETRIC_KEY;
 
 #endif   // !__COMMON_H__
