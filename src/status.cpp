@@ -63,6 +63,9 @@ std::string status_str(Status code) {
         case STATUS_SHARECMD_ERROR:
             return "Usage: share <mode> -u <username> -f <filename>";
             break;
+        case STATUS_MESSAGE_TOO_LARGE:
+            return "Message send or receive too large! Maybe cause by encryption!";
+            break;
         case NO:
             return "";
             break;
