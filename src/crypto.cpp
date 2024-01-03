@@ -1,5 +1,6 @@
 #include "crypto.h"
 
+#include <openssl/aes.h>
 #include <openssl/err.h>
 #include <openssl/evp.h>
 #include <openssl/pem.h>
@@ -7,6 +8,27 @@
 #include <openssl/rsa.h>
 
 #include <memory>
+
+std::vector<unsigned char> base64_decode(const std::string &in) {
+    std::vector<unsigned char> out;
+
+    BIO *bio, *b64;
+
+    int decodeLen = in.size();
+    out.resize(decodeLen);
+
+    bio = BIO_new_mem_buf(in.c_str(), -1);
+    b64 = BIO_new(BIO_f_base64());
+    bio = BIO_push(b64, bio);
+
+    BIO_set_flags(bio, BIO_FLAGS_BASE64_NO_NL);   // Do not use newlines to flush buffer
+    decodeLen = BIO_read(bio, out.data(), in.size());
+    out.resize(decodeLen);
+
+    BIO_free_all(bio);
+
+    return out;
+}
 
 bool generate_symmetric_key(std::string &sym_key) {
     std::vector<unsigned char> key(SYMMETRIC_KEY_SIZE);
@@ -50,85 +72,69 @@ bool generate_symmetric_key(std::string &sym_key) {
 
 bool encrypt_data(const std::string &aesKey, const std::string &plaintext,
                   std::string &ciphertext) {
-    EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
-    if (!ctx)
+    std::vector<unsigned char> key = base64_decode(aesKey);
+    unsigned char iv[AES_BLOCK_SIZE];
+    memset(iv, 0x00, AES_BLOCK_SIZE);   // Hardcoded IV (for example purposes)
+
+    EVP_CIPHER_CTX *ctx;
+    int len;
+    int ciphertext_len;
+    unsigned char *out_buf = (unsigned char *) malloc(plaintext.size() + AES_BLOCK_SIZE);
+
+    if (!(ctx = EVP_CIPHER_CTX_new()))
         return false;
 
-    // Generate a random IV
-    std::vector<unsigned char> iv(EVP_CIPHER_iv_length(EVP_aes_256_cbc()));
-    RAND_bytes(iv.data(), iv.size());
-
-    if (EVP_EncryptInit_ex(ctx, EVP_aes_256_cbc(), NULL,
-                           reinterpret_cast<const unsigned char *>(aesKey.data()),
-                           iv.data()) != 1) {
-        EVP_CIPHER_CTX_free(ctx);
+    if (1 != EVP_EncryptInit_ex(ctx, EVP_aes_128_cbc(), NULL, key.data(), iv))
         return false;
-    }
 
-    std::vector<unsigned char> buffer(plaintext.size() + EVP_CIPHER_block_size(EVP_aes_256_cbc()));
-    int length = 0;
-    int ciphertext_len = 0;
-
-    if (EVP_EncryptUpdate(ctx, buffer.data(), &length,
-                          reinterpret_cast<const unsigned char *>(plaintext.data()),
-                          plaintext.size()) != 1) {
-        EVP_CIPHER_CTX_free(ctx);
+    if (1 != EVP_EncryptUpdate(ctx, out_buf, &len, (unsigned char *) plaintext.c_str(),
+                               plaintext.size()))
         return false;
-    }
-    ciphertext_len += length;
+    ciphertext_len = len;
 
-    if (EVP_EncryptFinal_ex(ctx, buffer.data() + length, &length) != 1) {
-        EVP_CIPHER_CTX_free(ctx);
+    if (1 != EVP_EncryptFinal_ex(ctx, out_buf + len, &len))
         return false;
-    }
-    ciphertext_len += length;
+    ciphertext_len += len;
 
-    // Prepend IV to the ciphertext
-    ciphertext.assign(reinterpret_cast<char *>(iv.data()), iv.size());
-    ciphertext.append(reinterpret_cast<char *>(buffer.data()), ciphertext_len);
+    ciphertext = std::string((char *) out_buf, ciphertext_len);
 
     EVP_CIPHER_CTX_free(ctx);
+    free(out_buf);
+
     return true;
 }
 
 bool decrypt_data(const std::string &aesKey, const std::string &ciphertext,
                   std::string &plaintext) {
-    EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
-    if (!ctx)
+    std::vector<unsigned char> key = base64_decode(aesKey);
+    unsigned char iv[AES_BLOCK_SIZE];
+    memset(iv, 0x00, AES_BLOCK_SIZE);   // Hardcoded IV
+
+    EVP_CIPHER_CTX *ctx;
+    int len;
+    int plaintext_len;
+    unsigned char *out_buf = (unsigned char *) malloc(ciphertext.size());
+
+    if (!(ctx = EVP_CIPHER_CTX_new()))
         return false;
 
-    // Extract IV from the beginning of the ciphertext
-    std::vector<unsigned char> iv(EVP_CIPHER_iv_length(EVP_aes_256_cbc()));
-    memcpy(iv.data(), ciphertext.data(), iv.size());
-
-    if (EVP_DecryptInit_ex(ctx, EVP_aes_256_cbc(), NULL,
-                           reinterpret_cast<const unsigned char *>(aesKey.data()),
-                           iv.data()) != 1) {
-        EVP_CIPHER_CTX_free(ctx);
+    if (1 != EVP_DecryptInit_ex(ctx, EVP_aes_128_cbc(), NULL, key.data(), iv))
         return false;
-    }
 
-    std::vector<unsigned char> buffer(ciphertext.size() - iv.size());
-    int length = 0;
-    int plaintext_len = 0;
-
-    if (EVP_DecryptUpdate(ctx, buffer.data(), &length,
-                          reinterpret_cast<const unsigned char *>(ciphertext.data() + iv.size()),
-                          ciphertext.size() - iv.size()) != 1) {
-        EVP_CIPHER_CTX_free(ctx);
+    if (1 != EVP_DecryptUpdate(ctx, out_buf, &len, (unsigned char *) ciphertext.c_str(),
+                               ciphertext.size()))
         return false;
-    }
-    plaintext_len += length;
+    plaintext_len = len;
 
-    if (EVP_DecryptFinal_ex(ctx, buffer.data() + length, &length) != 1) {
-        EVP_CIPHER_CTX_free(ctx);
+    if (1 != EVP_DecryptFinal_ex(ctx, out_buf + len, &len))
         return false;
-    }
-    plaintext_len += length;
+    plaintext_len += len;
 
-    plaintext.assign(reinterpret_cast<char *>(buffer.data()), plaintext_len);
+    plaintext = std::string((char *) out_buf, plaintext_len);
 
     EVP_CIPHER_CTX_free(ctx);
+    free(out_buf);
+
     return true;
 }
 

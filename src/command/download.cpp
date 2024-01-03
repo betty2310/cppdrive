@@ -127,7 +127,7 @@ void server_download(int sock_control, int sock_data, char *dir) {
         Message data;
         bool download_success = true;
         do {
-            byte_read = fread(data.payload, 1, PAYLOAD_SIZE, fp);
+            byte_read = fread(data.payload, 1, 1000, fp);
             data.type = MSG_TYPE_DOWNLOAD;
             data.length = byte_read;
             if (send_message(sock_data, data) < 0) {
@@ -139,9 +139,17 @@ void server_download(int sock_control, int sock_data, char *dir) {
                 download_success = false;
                 break;
             }
-            memset(data.payload, 0, SIZE);
+            memset(data.payload, 0, PAYLOAD_SIZE);
+            if (ferror(fp)) {
+                printf("Error reading file\n");
+            }
         } while (byte_read > 0);
 
+        if (feof(fp)) {
+            printf("We in end of file!");
+        } else {
+            printf("we not!");
+        }
         send_message(sock_data, create_status_message(MSG_TYPE_OK, NO));
         fclose(fp);
 

@@ -2,6 +2,7 @@
 
 #include <arpa/inet.h>
 #include <errno.h>
+#include <log.h>
 #include <netdb.h>
 #include <sys/socket.h>
 #include <unistd.h>
@@ -9,12 +10,43 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <string>
 
 #include "common.h"
 #include "crypto.h"
 #include "utils.h"
 
 int send_message(int sockfd, Message msg) {
+    std::string descrypt_str = "";
+    if (!SYMMETRIC_KEY.empty() && strlen(msg.payload) > 0) {
+        std::string payload(msg.payload, msg.length);
+        std::string encrypted_payload;
+        if (!encrypt_data(SYMMETRIC_KEY, payload, encrypted_payload)) {
+            printf("Error encrypting data\n");
+            return -1;
+        }
+        decrypt_data(SYMMETRIC_KEY, encrypted_payload, descrypt_str);
+        if (encrypted_payload.length() > PAYLOAD_SIZE) {
+            std::string message =
+                "Payload too large: " + std::to_string(encrypted_payload.length());
+            log_message('e', message.c_str());
+            server_log('e', message.c_str());
+            return -1;
+        }
+
+        memcpy(msg.payload, encrypted_payload.data(), encrypted_payload.size() + 1);
+        msg.length = strlen(msg.payload);
+    }
+    printf("==========\n");
+    printf("Sending:\n");
+    print_message(msg);
+    if (!descrypt_str.empty()) {
+        printf("\n--------------------\n");
+        printf("Decrypted payload: %s\nKey use: %s\nKey length: %ld\n", descrypt_str.c_str(),
+               SYMMETRIC_KEY.c_str(), SYMMETRIC_KEY.size());
+        printf("--------------------");
+    }
+    printf("\n==========\n");
     int dataLength, nLeft, idx;
     nLeft = sizeof(Message);
     idx = 0;
@@ -48,7 +80,32 @@ int recv_message(int socket, Message *msg) {
         idx += ret;
         nLeft -= ret;
     }
-    messsagecpy(&(*msg), recvMessage);
+    msg->type = recvMessage.type;
+    memcpy(msg->payload, recvMessage.payload, recvMessage.length + 1);
+    msg->length = recvMessage.length;
+    printf("==========\n");
+    printf("Receiving:\n");
+    print_message(*msg);
+    if (!SYMMETRIC_KEY.empty()) {
+        printf("\nKey use: %s\nKey length: %ld", SYMMETRIC_KEY.c_str(), SYMMETRIC_KEY.size());
+    }
+    printf("\n==========\n");
+    if (!SYMMETRIC_KEY.empty() && strlen(msg->payload) > 0) {
+        std::string encrypted_payload(msg->payload, msg->length);
+        std::string decrypted_payload;
+
+        if (!decrypt_data(SYMMETRIC_KEY, encrypted_payload, decrypted_payload)) {
+            printf("Error decrypting data\n");
+            return -1;
+        }
+        if (decrypted_payload.length() > PAYLOAD_SIZE) {
+            printf("Payload too large: %ld\n", decrypted_payload.length());
+            return -1;
+        }
+
+        memcpy(msg->payload, decrypted_payload.data(), decrypted_payload.length() + 1);
+        msg->length = strlen(msg->payload);
+    }
     return 1;
 }
 

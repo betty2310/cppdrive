@@ -20,7 +20,8 @@
 
 const char *process;
 char root_dir[SIZE];
-std::string SYMMETRIC_KEY;
+
+std::string SYMMETRIC_KEY = "";
 
 /**
  * Read command from user and store in Message struct
@@ -122,7 +123,9 @@ int main(int argc, char const *argv[]) {
         printf(ANSI_COLOR_GREEN "%s" ANSI_RESET, prompt);
         fflush(stdout);
         Message command;
+        memset(command.payload, 0, sizeof(command.payload));
         int fl = cli_read_command(user_input, sizeof(user_input), &command);
+        command.length = strlen(command.payload);
         if (fl == -1) {
             printf("Invalid command\n");
             sprintf(log_msg, "User %s enter invalid command", cur_user);
@@ -352,10 +355,6 @@ void handle_symmetric_key_pair(int sockfd) {
         }
     }
 
-    printf("AES key gen first: %s\n", aesKey.c_str());
-
-    SYMMETRIC_KEY = aesKey;
-
     Message key;
     recv_message(sockfd, &key);
     std::string public_server_key(key.payload);
@@ -363,16 +362,12 @@ void handle_symmetric_key_pair(int sockfd) {
     log_message('i', "Received public key from server");
     log_message('i', public_server_key.c_str());
 
-    printf("Public server key size: %lu\n", public_server_key.size());
-
     std::string ciphertext;
     if (encrypt_symmetric_key(public_server_key, aesKey, ciphertext)) {
-        printf("Encrypted symmetric key: %s with size: %ld\n", ciphertext.c_str(),
-               ciphertext.size());
         Message msg;
         msg.type = MSG_DATA_PUBKEY;
         msg.length = ciphertext.size();
-        memcpy(msg.payload, ciphertext.data(), ciphertext.size());
+        memcpy(msg.payload, ciphertext.data(), ciphertext.size() + 1);
         send_message(sockfd, msg);
         log_message('i', "Send encrypted symmetric key to server");
         log_message('i', ciphertext.c_str());
@@ -380,4 +375,5 @@ void handle_symmetric_key_pair(int sockfd) {
         log_message('e', "Failed to send encrypted symmetric key to server!");
         exit(1);
     }
+    SYMMETRIC_KEY = aesKey;
 }

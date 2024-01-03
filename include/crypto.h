@@ -31,8 +31,8 @@ bool encrypt_data(const std::string &aesKey, const std::string &plaintext, std::
  * @param plaintext plaintext
  * @return true if success, false otherwise
  */
-bool decrypt_data(const std::string &aesKey, const std::string &ciphertext,
-                  std::string &plaintext);
+bool decrypt_data(const std::string &aesKey, const std::string &ciphertext, std::string &plaintext);
+
 /**
  * Encrypt symmetric key with RSA public key
  * @param publicKeyPEM RSA public key

@@ -25,7 +25,7 @@
 
 const char *process;
 char root_dir[SIZE];
-std::string SYMMETRIC_KEY;
+std::string SYMMETRIC_KEY = "";
 
 /**
  * Create cppdrive storage directory
@@ -130,6 +130,8 @@ void server_handler(int sockfd) {
         int st = recv_message(sockfd, &msg);
 
         if (st < 0) {
+            sprintf(log_message, "Error: Failed to receive command from client");
+            server_log('e', log_message);
             break;
         }
         // Open data connection with client

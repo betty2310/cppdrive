@@ -6,7 +6,7 @@
 Message create_message(MessageType type, char* payload) {
     Message mess;
     mess.type = type;
-    memcpy(mess.payload, payload, PAYLOAD_SIZE);
+    memcpy(mess.payload, payload, strlen(payload) + 1);
     mess.length = strlen(mess.payload);
     return mess;
 }
@@ -20,7 +20,7 @@ Message create_status_message(MessageType type, Status status) {
 }
 
 void print_message(Message mess) {
-    printf("Message: [%d - %d]: %s\n", mess.type, mess.length, mess.payload);
+    printf("Message[type: %d - length: %d]\nPayload: %s", mess.type, mess.length, mess.payload);
 }
 
 int messsagecpy(Message* mess, Message temp) {
@@ -28,6 +28,6 @@ int messsagecpy(Message* mess, Message temp) {
         return -1;
     mess->type = temp.type;
     mess->length = temp.length;
-    memcpy(mess->payload, temp.payload, PAYLOAD_SIZE);
+    memcpy(mess->payload, temp.payload, temp.length + 1);
     return 0;
 }
