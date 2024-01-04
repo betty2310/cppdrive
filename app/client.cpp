@@ -125,7 +125,7 @@ int main(int argc, char const *argv[]) {
         Message command;
         memset(command.payload, 0, sizeof(command.payload));
         int fl = cli_read_command(user_input, sizeof(user_input), &command);
-        command.length = strlen(command.payload);
+        command.length = sizeof(command.payload);
         if (fl == -1) {
             printf("Invalid command\n");
             sprintf(log_msg, "User %s enter invalid command", cur_user);
@@ -154,6 +154,9 @@ int main(int argc, char const *argv[]) {
             log_message('i', log_msg);
             printf("Goodbye.\n");
             break;
+        } else if (command.type == MSG_TYPE_CLEAR) {
+            system("clear");
+            continue;
         } else if (command.type == MSG_TYPE_LS) {
             handle_list(data_sock);
         } else if (command.type == MSG_TYPE_BASIC_COMMAND) {
@@ -334,7 +337,7 @@ int cli_read_command(char *user_input, int size, Message *msg) {
                strcmp(user_input, "exit") == 0 || strcmp(user_input, "exit ") == 0) {
         msg->type = MSG_TYPE_QUIT;
     } else if (strcmp(user_input, "clear") == 0) {
-        system("clear");
+        msg->type = MSG_TYPE_CLEAR;
     } else if (strcmp(user_input, "reload") == 0) {
         msg->type = MSG_TYPE_RELOAD;
     } else {
