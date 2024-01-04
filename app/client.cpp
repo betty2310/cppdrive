@@ -125,7 +125,7 @@ int main(int argc, char const *argv[]) {
         Message command;
         memset(command.payload, 0, sizeof(command.payload));
         int fl = cli_read_command(user_input, sizeof(user_input), &command);
-        command.length = sizeof(command.payload);
+        command.length = strlen(command.payload);
         if (fl == -1) {
             printf("Invalid command\n");
             sprintf(log_msg, "User %s enter invalid command", cur_user);
@@ -173,7 +173,9 @@ int main(int argc, char const *argv[]) {
                 if (response.type == MSG_TYPE_ERROR) {
                     sprintf(log_msg, "Command output: %s", response.payload);
                     log_message('e', log_msg);
-                    printf("%s\n", response.payload);
+                    printf(ANSI_COLOR_RED "%s\n" ANSI_RESET,
+                           "Something went wrong!\nCheck log file for more details!");
+                    break;
                 } else if (response.type == MSG_DATA_CMD) {
                     printf("%s", response.payload);
                 } else {
@@ -207,7 +209,7 @@ int main(int argc, char const *argv[]) {
             while (1) {
                 recv_message(sockfd, &response);
                 if (response.type == MSG_TYPE_ERROR)
-                    printf("%s\n", response.payload);
+                    printf("%s", response.payload);
                 else if (response.type == MSG_DATA_FIND) {
                     printf("%s", response.payload);
                     std::string str(response.payload);
@@ -219,6 +221,8 @@ int main(int argc, char const *argv[]) {
             recv_message(sockfd, &response);
             if (response.type == MSG_TYPE_PIPE) {
                 handle_pipe_download(sockfd, files);
+            } else {
+                continue;
             }
             files = "";
         } else if (command.type == MSG_TYPE_SHARE) {
@@ -339,6 +343,34 @@ int cli_read_command(char *user_input, int size, Message *msg) {
     } else if (strcmp(user_input, "clear") == 0) {
         msg->type = MSG_TYPE_CLEAR;
     } else if (strcmp(user_input, "reload") == 0) {
+        msg->type = MSG_TYPE_RELOAD;
+    } else if (strcmp(user_input, "help") == 0) {
+        printf(ANSI_BOLD ANSI_COLOR_BLUE "ls" ANSI_RESET
+                                         ": list files and folders in current directory\n");
+        printf(ANSI_BOLD ANSI_COLOR_BLUE "cd <path>" ANSI_RESET ": change directory to <path>\n");
+        printf(ANSI_BOLD ANSI_COLOR_BLUE "mkdir" ANSI_RESET ": create folder\n");
+        printf(ANSI_BOLD ANSI_COLOR_BLUE "touch" ANSI_RESET ": create file\n");
+        printf(ANSI_BOLD ANSI_COLOR_BLUE "cat" ANSI_RESET ":show file content \n");
+        printf(ANSI_BOLD ANSI_COLOR_BLUE "mv" ANSI_RESET ":rename or move file/folder \n");
+        printf(ANSI_BOLD ANSI_COLOR_BLUE "cp" ANSI_RESET ":copy file or folder \n");
+        printf(ANSI_BOLD ANSI_COLOR_BLUE "rm" ANSI_RESET ":delete file or folder \n");
+
+        printf(ANSI_BOLD ANSI_COLOR_BLUE "pwd" ANSI_RESET ": print working directory\n");
+        printf(ANSI_BOLD ANSI_COLOR_BLUE "find <pattern>" ANSI_RESET
+                                         ": find files and folders in current directory\n");
+        printf(ANSI_BOLD ANSI_COLOR_BLUE
+               "find <pattern> | dl" ANSI_RESET
+               ": find files and folders in current directory and download\n");
+        printf(ANSI_BOLD ANSI_COLOR_BLUE "upload <path>" ANSI_RESET
+                                         ": upload file or folder to current directory\n");
+        printf(ANSI_BOLD ANSI_COLOR_BLUE "download <path>" ANSI_RESET
+                                         ": download file or folder to current directory\n");
+        printf(ANSI_BOLD ANSI_COLOR_BLUE "share <path>" ANSI_RESET
+                                         ": share file or folder to other users\n");
+        printf(ANSI_BOLD ANSI_COLOR_BLUE "quit" ANSI_RESET ": exit cppdrive\n");
+        printf(ANSI_BOLD ANSI_COLOR_BLUE "clear" ANSI_RESET ": clear screen\n");
+        printf(ANSI_BOLD ANSI_COLOR_BLUE "reload" ANSI_RESET ": reload file system\n");
+        printf(ANSI_BOLD ANSI_COLOR_BLUE "help" ANSI_RESET ": show help\n");
         msg->type = MSG_TYPE_RELOAD;
     } else {
         return -1;

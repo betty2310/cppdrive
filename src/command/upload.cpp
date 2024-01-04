@@ -74,7 +74,7 @@ void handle_upload(int sock_data, char *dir, int sock_control) {
         Message data;
         bool upload_success = true;
         do {
-            byte_read = fread(data.payload, 1, 1000, fp);
+            byte_read = fread(data.payload, 1, PAYLOAD_SIZE, fp);
             data.type = MSG_TYPE_UPLOAD;
             data.length = byte_read;
             if (send_message(sock_data, data) < 0) {
@@ -131,11 +131,9 @@ int _upload(int sock_control, int data_sock, char *arg, char *cur_dir) {
     }
 
     bool upload_success = true;
-    int number_of_message = 0;
     while (1) {
         recv_message(data_sock, &msg);
         if (msg.type == MSG_TYPE_UPLOAD) {
-            ++number_of_message;
             fwrite(msg.payload, 1, msg.length, fp);
         } else if (msg.type == MSG_TYPE_ERROR) {
             server_log('e', msg.payload);
@@ -145,7 +143,6 @@ int _upload(int sock_control, int data_sock, char *arg, char *cur_dir) {
             break;
         }
     }
-    printf("Number of message: %d\n", number_of_message);
     char *log_msg = (char *) malloc(SIZE);
     if (!is_file && upload_success) {
         sprintf(log_msg, "Folder uploaded to %s", path);

@@ -75,19 +75,25 @@ int _process_command(int sockfd, char *base_cmd) {
     }
 
     int n = (int) strlen(cmd_output);
-    int index = 0, readed = 0;
-    while (readed < n) {
-        cmd_output += index;
-        send_message(sockfd, create_message(MSG_DATA_CMD, cmd_output));
-        if (n - readed > PAYLOAD_SIZE) {
-            index = PAYLOAD_SIZE;
-            readed += PAYLOAD_SIZE;
-        } else {
-            index = n - readed;
-            readed = n;
+    int send_times = n / PAYLOAD_SIZE + 1;
+    bool download_success = true;
+    for (int i = 0; i < send_times; i++) {
+        char *buffer = (char *) malloc(PAYLOAD_SIZE * sizeof(char));
+        int index = PAYLOAD_SIZE;
+        if (i == send_times - 1) {
+            index = n - i * PAYLOAD_SIZE;
         }
+        memcpy(buffer, cmd_output + i * PAYLOAD_SIZE, index);
+        if (send_message(sockfd, create_message(MSG_DATA_CMD, buffer)) < 0) {
+            download_success = false;
+            break;
+        }
+        free(buffer);
     }
-    send_message(sockfd, create_status_message(MSG_TYPE_OK, NO));
+
+    if (download_success) {
+        send_message(sockfd, create_status_message(MSG_TYPE_OK, NO));
+    }
     sprintf(msg_log, "Success: %s", base_cmd);
     server_log('i', msg_log);
     free(msg_log);
@@ -98,6 +104,7 @@ int process_command(int sockfd, char *base_cmd, char *cur_dir) {
     if (strncmp(base_cmd, "cat", 3) == 0) {
         send_message(sockfd, create_status_message(MSG_TYPE_OK, NO));
         _process_command(sockfd, base_cmd);
+        return 0;
     }
     char *share_folder_path = (char *) malloc(SIZE);
     int share_mode = is_current_share_folder(cur_dir, share_folder_path);

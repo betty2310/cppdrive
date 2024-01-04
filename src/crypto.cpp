@@ -9,133 +9,51 @@
 
 #include <memory>
 
-std::vector<unsigned char> base64_decode(const std::string &in) {
-    std::vector<unsigned char> out;
-
-    BIO *bio, *b64;
-
-    int decodeLen = in.size();
-    out.resize(decodeLen);
-
-    bio = BIO_new_mem_buf(in.c_str(), -1);
-    b64 = BIO_new(BIO_f_base64());
-    bio = BIO_push(b64, bio);
-
-    BIO_set_flags(bio, BIO_FLAGS_BASE64_NO_NL);   // Do not use newlines to flush buffer
-    decodeLen = BIO_read(bio, out.data(), in.size());
-    out.resize(decodeLen);
-
-    BIO_free_all(bio);
-
-    return out;
+void handleErrors() {
+    // Error handling code
+    ERR_print_errors_fp(stderr);
+    abort();
 }
 
-bool generate_symmetric_key(std::string &sym_key) {
-    std::vector<unsigned char> key(SYMMETRIC_KEY_SIZE);
-    if (RAND_bytes(key.data(), SYMMETRIC_KEY_SIZE) != 1) {
-        // RAND_bytes failed
-        return false;
+bool generate_symmetric_key(std::string &key) {
+    for (int i = 0; i < SYMMETRIC_KEY_SIZE; ++i) {
+        key += (char) (rand() % 256);
     }
-
-    BIO *bio, *b64;
-    BUF_MEM *bufferPtr;
-
-    b64 = BIO_new(BIO_f_base64());
-    if (!b64)
-        return false;
-
-    bio = BIO_new(BIO_s_mem());
-    if (!bio) {
-        BIO_free_all(b64);
-        return false;
-    }
-
-    bio = BIO_push(b64, bio);
-
-    if (BIO_write(bio, key.data(), key.size()) <= 0) {
-        BIO_free_all(bio);
-        return false;
-    }
-
-    if (BIO_flush(bio) <= 0) {
-        BIO_free_all(bio);
-        return false;
-    }
-
-    BIO_get_mem_ptr(bio, &bufferPtr);
-    sym_key.assign(bufferPtr->data, bufferPtr->length);
-
-    BIO_free_all(bio);
-
     return true;
 }
 
-bool encrypt_data(const std::string &aesKey, const std::string &plaintext,
-                  std::string &ciphertext) {
-    std::vector<unsigned char> key = base64_decode(aesKey);
-    unsigned char iv[AES_BLOCK_SIZE];
-    memset(iv, 0x00, AES_BLOCK_SIZE);   // Hardcoded IV (for example purposes)
-
-    EVP_CIPHER_CTX *ctx;
-    int len;
-    int ciphertext_len;
-    unsigned char *out_buf = (unsigned char *) malloc(plaintext.size() + AES_BLOCK_SIZE);
-
-    if (!(ctx = EVP_CIPHER_CTX_new()))
-        return false;
-
-    if (1 != EVP_EncryptInit_ex(ctx, EVP_aes_128_cbc(), NULL, key.data(), iv))
-        return false;
-
-    if (1 != EVP_EncryptUpdate(ctx, out_buf, &len, (unsigned char *) plaintext.c_str(),
-                               plaintext.size()))
-        return false;
-    ciphertext_len = len;
-
-    if (1 != EVP_EncryptFinal_ex(ctx, out_buf + len, &len))
-        return false;
-    ciphertext_len += len;
-
-    ciphertext = std::string((char *) out_buf, ciphertext_len);
-
-    EVP_CIPHER_CTX_free(ctx);
-    free(out_buf);
-
-    return true;
+// Function to extend the key to match the length of the data
+std::string extend_key(const std::string &key, size_t data_length) {
+    std::string extended_key = key;
+    while (extended_key.length() < data_length) {
+        extended_key += key;
+    }
+    extended_key.resize(data_length);
+    return extended_key;
 }
 
-bool decrypt_data(const std::string &aesKey, const std::string &ciphertext,
-                  std::string &plaintext) {
-    std::vector<unsigned char> key = base64_decode(aesKey);
-    unsigned char iv[AES_BLOCK_SIZE];
-    memset(iv, 0x00, AES_BLOCK_SIZE);   // Hardcoded IV
+// XOR Encrypt or Decrypt (symmetric operation)
+int xor_encrypt_decrypt(const std::string &data, const std::string &key, std::string &result) {
+    if (key.empty()) {
+        return -1;   // Key should not be empty
+    }
 
-    EVP_CIPHER_CTX *ctx;
-    int len;
-    int plaintext_len;
-    unsigned char *out_buf = (unsigned char *) malloc(ciphertext.size());
+    std::string extended_key = extend_key(key, data.size());
+    result.resize(data.size());
 
-    if (!(ctx = EVP_CIPHER_CTX_new()))
-        return false;
+    for (size_t i = 0; i < data.size(); ++i) {
+        result[i] = data[i] ^ extended_key[i];
+    }
 
-    if (1 != EVP_DecryptInit_ex(ctx, EVP_aes_128_cbc(), NULL, key.data(), iv))
-        return false;
+    return result.length();
+}
 
-    if (1 != EVP_DecryptUpdate(ctx, out_buf, &len, (unsigned char *) ciphertext.c_str(),
-                               ciphertext.size()))
-        return false;
-    plaintext_len = len;
+int encrypt_data(const std::string &aesKey, const std::string &plaintext, std::string &ciphertext) {
+    return xor_encrypt_decrypt(plaintext, aesKey, ciphertext);
+}
 
-    if (1 != EVP_DecryptFinal_ex(ctx, out_buf + len, &len))
-        return false;
-    plaintext_len += len;
-
-    plaintext = std::string((char *) out_buf, plaintext_len);
-
-    EVP_CIPHER_CTX_free(ctx);
-    free(out_buf);
-
-    return true;
+int decrypt_data(const std::string &aesKey, const std::string &ciphertext, std::string &plaintext) {
+    return xor_encrypt_decrypt(ciphertext, aesKey, plaintext);
 }
 
 bool generate_key_pair(std::string &public_key, std::string &private_key) {

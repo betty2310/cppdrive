@@ -20,7 +20,11 @@ Message create_status_message(MessageType type, Status status) {
 }
 
 void print_message(Message mess) {
-    printf("Message[type: %d - length: %d]\nPayload: %s", mess.type, mess.length, mess.payload);
+    char* payload_temp = (char*) malloc(mess.length + 1);
+    memcpy(payload_temp, mess.payload, mess.length + 1);
+    payload_temp[mess.length] = '\0';
+    printf("Message[type: %d - length: %d]\nPayload: %s", mess.type, mess.length, payload_temp);
+    free(payload_temp);
 }
 
 int messsagecpy(Message* mess, Message temp) {

@@ -77,7 +77,9 @@ int server_list(int sockfd) {
         }
     }
     strcat(payload, "\n");
-    msg = create_message(MSG_DATA_LS, payload);
+    msg.type = MSG_DATA_LS;
+    msg.length = strlen(payload);
+    memcpy(msg.payload, payload, msg.length + 1);
     if (send_message(sockfd, msg) < 0) {
         perror("error");
     }

@@ -21,17 +21,18 @@ bool generate_symmetric_key(std::string &key);
  * @param key symmetric key
  * @param plaintext plaintext
  * @param ciphertext ciphertext
- * @return true if success, false otherwise
+ * @return length of ciphertext if success, -1 otherwise
  */
-bool encrypt_data(const std::string &aesKey, const std::string &plaintext, std::string &ciphertext);
+int encrypt_data(const std::string &aesKey, const std::string &plaintext, std::string &ciphertext);
+
 /**
  * Decrypt data with symmetric key
  * @param key symmetric key
  * @param ciphertext ciphertext
  * @param plaintext plaintext
- * @return true if success, false otherwise
+ * @return length of plaintext if success, -1 otherwise
  */
-bool decrypt_data(const std::string &aesKey, const std::string &ciphertext, std::string &plaintext);
+int decrypt_data(const std::string &aesKey, const std::string &ciphertext, std::string &plaintext);
 
 /**
  * Encrypt symmetric key with RSA public key

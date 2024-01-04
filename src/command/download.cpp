@@ -67,6 +67,7 @@ int handle_download(int data_sock, int sock_control, char *arg) {
             break;
         }
     }
+
     if (!download_success) {
         remove(path);
         log_message('e', "Download file or folder fail!");
@@ -76,9 +77,9 @@ int handle_download(int data_sock, int sock_control, char *arg) {
         str_log_message = "File downloaded to ";
         str_log_message += str_path;
         log_message('i', str_log_message.c_str());
-        free(path);
-        fclose(fp);
     }
+    free(path);
+    fclose(fp);
     return 0;
 }
 
@@ -96,23 +97,23 @@ int handle_pipe_download(int sockfd, std::string files) {
     return 0;
 }
 
-void server_download(int sock_control, int sock_data, char *dir) {
+void server_download(int sock_control, int sock_data, char *path) {
     char compress_folder[SIZE];
-    int fl = is_folder(dir);
-    if (is_folder(dir)) {
+    int fl = is_folder(path);
+    if (is_folder(path)) {
         // need to compress folder before sending
-        strcpy(compress_folder, dir);
+        strcpy(compress_folder, path);
         // use zip
         strcat(compress_folder, ".zip");
-        zip(dir, compress_folder);
-        strcpy(dir, compress_folder);
+        zip(path, compress_folder);
+        strcpy(path, compress_folder);
 
         send_message(sock_control, create_status_message(MSG_TYPE_DOWNLOAD_FOLDER, NO));
     } else
         send_message(sock_control, create_status_message(MSG_TYPE_DOWNLOAD_FILE, NO));
 
-    std::string str_dir(dir);
-    FILE *fp = fopen(dir, "r");
+    std::string str_dir(path);
+    FILE *fp = fopen(path, "r");
 
     if (!fp) {
         send_message(sock_control, create_status_message(MSG_TYPE_ERROR, FILE_NOT_FOUND));
@@ -127,7 +128,7 @@ void server_download(int sock_control, int sock_data, char *dir) {
         Message data;
         bool download_success = true;
         do {
-            byte_read = fread(data.payload, 1, 1000, fp);
+            byte_read = fread(data.payload, 1, PAYLOAD_SIZE, fp);
             data.type = MSG_TYPE_DOWNLOAD;
             data.length = byte_read;
             if (send_message(sock_data, data) < 0) {
@@ -145,11 +146,6 @@ void server_download(int sock_control, int sock_data, char *dir) {
             }
         } while (byte_read > 0);
 
-        if (feof(fp)) {
-            printf("We in end of file!");
-        } else {
-            printf("we not!");
-        }
         send_message(sock_data, create_status_message(MSG_TYPE_OK, NO));
         fclose(fp);
 
