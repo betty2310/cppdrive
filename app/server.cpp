@@ -67,7 +67,7 @@ int main(int argc, char const *argv[]) {
         if ((sockfd = socket_accept(socket)) < 0)
             break;
 
-        printf(ANSI_COLOR_GREEN "Got connection from client!" ANSI_RESET "\n");
+        printf(ANSI_COLOR_GREEN "Get a connection from client!" ANSI_RESET "\n");
         server_log('i', "New connection established");
         if ((pid = fork()) < 0) {
             printf("Error: fork() failed\n");
