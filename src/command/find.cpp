@@ -64,18 +64,22 @@ int server_find(int sockfd, char *arg) {
     }
     pclose(fp);
     int n = (int) strlen(output);
-    int index = 0, readed = 0;
-    while (readed < n) {
-        output += index;
-        send_message(sockfd, create_message(MSG_DATA_FIND, output));
-        if (n - readed > PAYLOAD_SIZE) {
-            index = PAYLOAD_SIZE;
-            readed += PAYLOAD_SIZE;
-        } else {
-            index = n - readed;
-            readed = n;
+    int bytes_sent = 0;
+    Message msg;
+
+    while (bytes_sent < n) {
+        int chunk_size = std::min(PAYLOAD_SIZE, n - bytes_sent);
+
+        strncpy(msg.payload, output + bytes_sent, chunk_size);
+        msg.length = chunk_size;
+        msg.type = MSG_DATA_FIND;
+        if (send_message(sockfd, msg) < 0) {
+            break;
         }
+        memset(msg.payload, 0, PAYLOAD_SIZE);
+        bytes_sent += chunk_size;
     }
+
     send_message(sockfd, create_status_message(MSG_TYPE_OK, NO));
 
     if (!right_cmd.empty()) {

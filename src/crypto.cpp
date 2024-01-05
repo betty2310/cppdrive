@@ -8,128 +8,45 @@
 
 #include <memory>
 
-bool generate_symmetric_key(std::string &sym_key) {
-    std::vector<unsigned char> key(SYMMETRIC_KEY_SIZE);
-    if (RAND_bytes(key.data(), SYMMETRIC_KEY_SIZE) != 1) {
-        // RAND_bytes failed
-        return false;
+bool generate_symmetric_key(std::string &key) {
+    for (int i = 0; i < SYMMETRIC_KEY_SIZE; ++i) {
+        key += (char) (rand() % 95 + 32);
     }
-
-    BIO *bio, *b64;
-    BUF_MEM *bufferPtr;
-
-    b64 = BIO_new(BIO_f_base64());
-    if (!b64)
-        return false;
-
-    bio = BIO_new(BIO_s_mem());
-    if (!bio) {
-        BIO_free_all(b64);
-        return false;
-    }
-
-    bio = BIO_push(b64, bio);
-
-    if (BIO_write(bio, key.data(), key.size()) <= 0) {
-        BIO_free_all(bio);
-        return false;
-    }
-
-    if (BIO_flush(bio) <= 0) {
-        BIO_free_all(bio);
-        return false;
-    }
-
-    BIO_get_mem_ptr(bio, &bufferPtr);
-    sym_key.assign(bufferPtr->data, bufferPtr->length);
-
-    BIO_free_all(bio);
-
     return true;
 }
 
-bool encrypt_data(const std::string &aesKey, const std::string &plaintext,
-                  std::string &ciphertext) {
-    EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
-    if (!ctx)
-        return false;
-
-    // Generate a random IV
-    std::vector<unsigned char> iv(EVP_CIPHER_iv_length(EVP_aes_256_cbc()));
-    RAND_bytes(iv.data(), iv.size());
-
-    if (EVP_EncryptInit_ex(ctx, EVP_aes_256_cbc(), NULL,
-                           reinterpret_cast<const unsigned char *>(aesKey.data()),
-                           iv.data()) != 1) {
-        EVP_CIPHER_CTX_free(ctx);
-        return false;
+// Function to extend the key to match the length of the data
+std::string extend_key(const std::string &key, size_t data_length) {
+    std::string extended_key = key;
+    while (extended_key.length() < data_length) {
+        extended_key += key;
     }
-
-    std::vector<unsigned char> buffer(plaintext.size() + EVP_CIPHER_block_size(EVP_aes_256_cbc()));
-    int length = 0;
-    int ciphertext_len = 0;
-
-    if (EVP_EncryptUpdate(ctx, buffer.data(), &length,
-                          reinterpret_cast<const unsigned char *>(plaintext.data()),
-                          plaintext.size()) != 1) {
-        EVP_CIPHER_CTX_free(ctx);
-        return false;
-    }
-    ciphertext_len += length;
-
-    if (EVP_EncryptFinal_ex(ctx, buffer.data() + length, &length) != 1) {
-        EVP_CIPHER_CTX_free(ctx);
-        return false;
-    }
-    ciphertext_len += length;
-
-    // Prepend IV to the ciphertext
-    ciphertext.assign(reinterpret_cast<char *>(iv.data()), iv.size());
-    ciphertext.append(reinterpret_cast<char *>(buffer.data()), ciphertext_len);
-
-    EVP_CIPHER_CTX_free(ctx);
-    return true;
+    extended_key.resize(data_length);
+    return extended_key;
 }
 
-bool decrypt_data(const std::string &aesKey, const std::string &ciphertext,
-                  std::string &plaintext) {
-    EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
-    if (!ctx)
-        return false;
-
-    // Extract IV from the beginning of the ciphertext
-    std::vector<unsigned char> iv(EVP_CIPHER_iv_length(EVP_aes_256_cbc()));
-    memcpy(iv.data(), ciphertext.data(), iv.size());
-
-    if (EVP_DecryptInit_ex(ctx, EVP_aes_256_cbc(), NULL,
-                           reinterpret_cast<const unsigned char *>(aesKey.data()),
-                           iv.data()) != 1) {
-        EVP_CIPHER_CTX_free(ctx);
-        return false;
+// XOR Encrypt or Decrypt (symmetric operation)
+int xor_encrypt_decrypt(const std::string &data, const std::string &key, std::string &result) {
+    if (key.empty()) {
+        return -1;   // Key should not be empty
     }
 
-    std::vector<unsigned char> buffer(ciphertext.size() - iv.size());
-    int length = 0;
-    int plaintext_len = 0;
+    std::string extended_key = extend_key(key, data.size());
+    result.resize(data.size());
 
-    if (EVP_DecryptUpdate(ctx, buffer.data(), &length,
-                          reinterpret_cast<const unsigned char *>(ciphertext.data() + iv.size()),
-                          ciphertext.size() - iv.size()) != 1) {
-        EVP_CIPHER_CTX_free(ctx);
-        return false;
+    for (size_t i = 0; i < data.size(); ++i) {
+        result[i] = data[i] ^ extended_key[i];
     }
-    plaintext_len += length;
 
-    if (EVP_DecryptFinal_ex(ctx, buffer.data() + length, &length) != 1) {
-        EVP_CIPHER_CTX_free(ctx);
-        return false;
-    }
-    plaintext_len += length;
+    return result.length();
+}
 
-    plaintext.assign(reinterpret_cast<char *>(buffer.data()), plaintext_len);
+int encrypt_data(const std::string &aesKey, const std::string &plaintext, std::string &ciphertext) {
+    return xor_encrypt_decrypt(plaintext, aesKey, ciphertext);
+}
 
-    EVP_CIPHER_CTX_free(ctx);
-    return true;
+int decrypt_data(const std::string &aesKey, const std::string &ciphertext, std::string &plaintext) {
+    return xor_encrypt_decrypt(ciphertext, aesKey, plaintext);
 }
 
 bool generate_key_pair(std::string &public_key, std::string &private_key) {

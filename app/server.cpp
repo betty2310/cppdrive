@@ -67,7 +67,7 @@ int main(int argc, char const *argv[]) {
         if ((sockfd = socket_accept(socket)) < 0)
             break;
 
-        printf("New connection established\n");
+        printf(ANSI_COLOR_GREEN "Got connection from client!" ANSI_RESET "\n");
         server_log('i', "New connection established");
         if ((pid = fork()) < 0) {
             printf("Error: fork() failed\n");
@@ -193,7 +193,7 @@ void handle_symmetric_key_pair(int sockfd, char *cur_user) {
     std::string public_key;
     std::string private_key;
     if (generate_key_pair(public_key, private_key)) {
-        send_message(sockfd, create_message(MSG_DATA_PUBKEY, (char *) public_key.c_str()));
+        send_message(sockfd, create_message(MSG_DATA_PUBKEY, public_key.data()));
         server_log('i', "Key pair generated");
         server_log('i', public_key.c_str());
         server_log('i', private_key.c_str());

@@ -123,6 +123,7 @@ int main(int argc, char const *argv[]) {
         fflush(stdout);
         Message command;
         int fl = cli_read_command(user_input, sizeof(user_input), &command);
+        command.length = strlen(command.payload);
         if (fl == -1) {
             printf("Invalid command\n");
             sprintf(log_msg, "User %s enter invalid command", cur_user);
@@ -151,6 +152,9 @@ int main(int argc, char const *argv[]) {
             log_message('i', log_msg);
             printf("Goodbye.\n");
             break;
+        } else if (command.type == MSG_TYPE_CLEAR) {
+            system("clear");
+            continue;
         } else if (command.type == MSG_TYPE_LS) {
             handle_list(data_sock);
         } else if (command.type == MSG_TYPE_BASIC_COMMAND) {
@@ -201,7 +205,7 @@ int main(int argc, char const *argv[]) {
             while (1) {
                 recv_message(sockfd, &response);
                 if (response.type == MSG_TYPE_ERROR)
-                    printf("%s\n", response.payload);
+                    printf("%s", response.payload);
                 else if (response.type == MSG_DATA_FIND) {
                     printf("%s", response.payload);
                     std::string str(response.payload);
@@ -213,6 +217,8 @@ int main(int argc, char const *argv[]) {
             recv_message(sockfd, &response);
             if (response.type == MSG_TYPE_PIPE) {
                 handle_pipe_download(sockfd, files);
+            } else {
+                continue;
             }
             files = "";
         } else if (command.type == MSG_TYPE_SHARE) {
@@ -331,8 +337,36 @@ int cli_read_command(char *user_input, int size, Message *msg) {
                strcmp(user_input, "exit") == 0 || strcmp(user_input, "exit ") == 0) {
         msg->type = MSG_TYPE_QUIT;
     } else if (strcmp(user_input, "clear") == 0) {
-        system("clear");
+        msg->type = MSG_TYPE_CLEAR;
     } else if (strcmp(user_input, "reload") == 0) {
+        msg->type = MSG_TYPE_RELOAD;
+    } else if (strcmp(user_input, "help") == 0) {
+        printf(ANSI_BOLD ANSI_COLOR_BLUE "ls" ANSI_RESET
+                                         ": list files and folders in current directory\n");
+        printf(ANSI_BOLD ANSI_COLOR_BLUE "cd <path>" ANSI_RESET ": change directory to <path>\n");
+        printf(ANSI_BOLD ANSI_COLOR_BLUE "mkdir" ANSI_RESET ": create folder\n");
+        printf(ANSI_BOLD ANSI_COLOR_BLUE "touch" ANSI_RESET ": create file\n");
+        printf(ANSI_BOLD ANSI_COLOR_BLUE "cat" ANSI_RESET ":show file content \n");
+        printf(ANSI_BOLD ANSI_COLOR_BLUE "mv" ANSI_RESET ":rename or move file/folder \n");
+        printf(ANSI_BOLD ANSI_COLOR_BLUE "cp" ANSI_RESET ":copy file or folder \n");
+        printf(ANSI_BOLD ANSI_COLOR_BLUE "rm" ANSI_RESET ":delete file or folder \n");
+
+        printf(ANSI_BOLD ANSI_COLOR_BLUE "pwd" ANSI_RESET ": print working directory\n");
+        printf(ANSI_BOLD ANSI_COLOR_BLUE "find <pattern>" ANSI_RESET
+                                         ": find files and folders in current directory\n");
+        printf(ANSI_BOLD ANSI_COLOR_BLUE
+               "find <pattern> | dl" ANSI_RESET
+               ": find files and folders in current directory and download\n");
+        printf(ANSI_BOLD ANSI_COLOR_BLUE "upload <path>" ANSI_RESET
+                                         ": upload file or folder to current directory\n");
+        printf(ANSI_BOLD ANSI_COLOR_BLUE "download <path>" ANSI_RESET
+                                         ": download file or folder to current directory\n");
+        printf(ANSI_BOLD ANSI_COLOR_BLUE "share <path>" ANSI_RESET
+                                         ": share file or folder to other users\n");
+        printf(ANSI_BOLD ANSI_COLOR_BLUE "quit" ANSI_RESET ": exit cppdrive\n");
+        printf(ANSI_BOLD ANSI_COLOR_BLUE "clear" ANSI_RESET ": clear screen\n");
+        printf(ANSI_BOLD ANSI_COLOR_BLUE "reload" ANSI_RESET ": reload file system\n");
+        printf(ANSI_BOLD ANSI_COLOR_BLUE "help" ANSI_RESET ": show help\n");
         msg->type = MSG_TYPE_RELOAD;
     } else {
         return -1;
@@ -352,10 +386,6 @@ void handle_symmetric_key_pair(int sockfd) {
         }
     }
 
-    printf("AES key gen first: %s\n", aesKey.c_str());
-
-    SYMMETRIC_KEY = aesKey;
-
     Message key;
     recv_message(sockfd, &key);
     std::string public_server_key(key.payload);
@@ -363,16 +393,12 @@ void handle_symmetric_key_pair(int sockfd) {
     log_message('i', "Received public key from server");
     log_message('i', public_server_key.c_str());
 
-    printf("Public server key size: %lu\n", public_server_key.size());
-
     std::string ciphertext;
     if (encrypt_symmetric_key(public_server_key, aesKey, ciphertext)) {
-        printf("Encrypted symmetric key: %s with size: %ld\n", ciphertext.c_str(),
-               ciphertext.size());
         Message msg;
         msg.type = MSG_DATA_PUBKEY;
         msg.length = ciphertext.size();
-        memcpy(msg.payload, ciphertext.data(), ciphertext.size());
+        memcpy(msg.payload, ciphertext.data(), ciphertext.size() + 1);
         send_message(sockfd, msg);
         log_message('i', "Send encrypted symmetric key to server");
         log_message('i', ciphertext.c_str());
@@ -380,4 +406,5 @@ void handle_symmetric_key_pair(int sockfd) {
         log_message('e', "Failed to send encrypted symmetric key to server!");
         exit(1);
     }
+    SYMMETRIC_KEY = aesKey;
 }

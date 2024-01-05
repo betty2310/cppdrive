@@ -10,6 +10,7 @@ typedef enum {
     MSG_TYPE_ERROR,
     MSG_TYPE_AUTHEN,
     MSG_TYPE_REGISTER,
+    MSG_TYPE_CLEAR,
     MSG_TYPE_LS,
     MSG_TYPE_CD,
     MSG_TYPE_QUIT,

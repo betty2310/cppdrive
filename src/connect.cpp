@@ -12,9 +12,29 @@
 
 #include "common.h"
 #include "crypto.h"
+#include "log.h"
 #include "utils.h"
 
 int send_message(int sockfd, Message msg) {
+    std::string encrypted_payload = "";
+    if (!SYMMETRIC_KEY.empty() && msg.length > 0) {
+        std::string payload(msg.payload, msg.length);
+        int len = encrypt_data(SYMMETRIC_KEY, payload, encrypted_payload);
+        if (len < 0) {
+            printf("Error encrypting data\n");
+            return -1;
+        }
+        if (len > PAYLOAD_SIZE) {
+            std::string message = "Payload too large: " + std::to_string(len);
+            print_message(msg);
+            log_message('e', message.c_str());
+            server_log('e', message.c_str());
+            return -1;
+        }
+        memset(msg.payload, 0, PAYLOAD_SIZE);
+        memcpy(msg.payload, encrypted_payload.data(), len);
+        msg.length = len;
+    }
     int dataLength, nLeft, idx;
     nLeft = sizeof(Message);
     idx = 0;
@@ -49,6 +69,24 @@ int recv_message(int socket, Message *msg) {
         nLeft -= ret;
     }
     messsagecpy(&(*msg), recvMessage);
+
+    if (!SYMMETRIC_KEY.empty() && msg->length > 0) {
+        std::string encrypted_payload(msg->payload, msg->length);
+        std::string decrypted_payload = "";
+        int len = decrypt_data(SYMMETRIC_KEY, encrypted_payload, decrypted_payload);
+        if (len < 0) {
+            printf(ANSI_BOLD ANSI_COLOR_RED "Error decrypting data" ANSI_RESET "\n");
+            printf("Decrypted payload: %s\n", decrypted_payload.c_str());
+            return -1;
+        }
+        if (len > PAYLOAD_SIZE) {
+            printf("Payload too large: %d\n", len);
+            return -1;
+        }
+        memset(msg->payload, 0, PAYLOAD_SIZE);
+        memcpy(msg->payload, decrypted_payload.data(), len);
+        msg->length = len;
+    }
     return 1;
 }
 
