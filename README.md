@@ -6,6 +6,7 @@ Hoặc đơn giản là bài tập lớn môn thực hành lập trình mạng -
 
 This app simulates the action when you ssh to your cloud server then use unix-like commands to do file operations.
 
+![CleanShot 2024-01-06 at 11 12 32](https://github.com/betty2310/cppdrive/assets/75170473/c8125f3e-a6f8-4ef7-a1a9-0e1f5fb30d3e)
 
 
 ## Features
@@ -53,10 +54,10 @@ $ sudo apt-get install build-essential cmake fd-find zip unzip libssl-dev
 
 $ ln -s $(which fdfind) ~/.local/bin/fd # or add it to your PATH
 ```
-### Visual Studio Code
-Install the following extensions:
-- [C/C++](https://marketplace.visualstudio.com/items?itemName=ms-vscode.cpptools)
-- [CMake Tools](https://marketplace.visualstudio.com/items?itemName=ms-vscode.cmake-tools)
+
+> [!NOTE]  
+> Should use branch `tokyo` for stable version. `master` branch may have some error now.
+
 
 ## Building
 
@@ -70,5 +71,15 @@ $ cmake ..
 $ make
 $ ./main
 ```
+
+> [!WARNING]  
+> After register account, should exit app, then login again, login right after register may contain error.
+
+### Visual Studio Code
+Install the following extensions:
+- [C/C++](https://marketplace.visualstudio.com/items?itemName=ms-vscode.cpptools)
+- [CMake Tools](https://marketplace.visualstudio.com/items?itemName=ms-vscode.cmake-tools)
+
+
 ## Authors
 + Dương Hữu Huynh - 20205087
