@@ -1,5 +1,23 @@
 <kbd>🌸 CppDrive</kbd>
 
+CppDrive is a simple, lightweight file-sharing application built in C/C++.
+
+Hoặc đơn giản là bài tập lớn môn thực hành lập trình mạng - IT4062 Hedspi k65 HUST, chủ đề file-sharing 🥴
+
+This app simulates the action when you ssh to your cloud server then use unix-like commands to do file operations.
+
+
+
+## Features
+
+
+ - [x] User-friendly shell interface, offering a familiar environment for developers.
+  - [x] Secure authentication using hashed passwords.
+  - [x] Comprehensive file and folder management: creation, deletion, renaming, moving, copying, searching, viewing (cat), along with upload and download capabilities.
+  - [x] File and folder sharing feature, allowing permissions to be set for other users.
+  - [x] Robust end-to-end encryption for enhanced security.
+  - [x] Detailed logging system.
+
 ## Structure
 ``` bash
 .
@@ -22,6 +40,24 @@ add_executable(main app/main.cpp)   # Name of exec. and location of file.
 target_link_libraries(main PRIVATE ${LIBRARY_NAME})  # Link the executable to lib built from src/*.cpp (if it uses it).
 ```
 
+## Setup
+### Dependencies
++ [CMake](https://cmake.org/)
++ C++ Compiler: `g++`, `clang` or `msvc`
++ `zip`, `unzip`, [`fd`](https://github.com/sharkdp/fd)
+
+
+On **Ubuntu**:
+```
+$ sudo apt-get install build-essential cmake fd-find zip unzip libssl-dev
+
+$ ln -s $(which fdfind) ~/.local/bin/fd # or add it to your PATH
+```
+### Visual Studio Code
+Install the following extensions:
+- [C/C++](https://marketplace.visualstudio.com/items?itemName=ms-vscode.cpptools)
+- [CMake Tools](https://marketplace.visualstudio.com/items?itemName=ms-vscode.cmake-tools)
+
 ## Building
 
 Build by making a build directory (i.e. `build/`), run `cmake` in that dir, and then use `make` to build the desired target.
@@ -29,26 +65,10 @@ Build by making a build directory (i.e. `build/`), run `cmake` in that dir, and 
 Example:
 
 ```bash
-mkdir build && cd build
-cmake ..
-make
-./main
-
+$ mkdir build && cd build
+$ cmake ..
+$ make
+$ ./main
 ```
-
-## Setup
-### Dependencies
-+ [CMake](https://cmake.org/)
-+ C++ Compiler: `g++`, `clang` or `msvc`
-+ `zip`, `unzip`, `fd`
-
-
-On Ubuntu:
-```
-sudo apt-get install build-essential cmake fd-find zip unzip libssl-dev
-ln -s $(which fdfind) ~/.local/bin/fd
-```
-### Visual Studio Code
-Install the following extensions:
-- [C/C++](https://marketplace.visualstudio.com/items?itemName=ms-vscode.cpptools)
-- [CMake Tools](https://marketplace.visualstudio.com/items?itemName=ms-vscode.cmake-tools)
+## Authors
++ Dương Hữu Huynh - 20205087
